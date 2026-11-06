@@ -207,6 +207,15 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
 .modal h3{margin:0 0 8px;font-size:18px}
 .modal p{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.7}
 .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.modal.wide{width:min(560px,100%)}
+.terms{max-height:min(56vh,480px);overflow-y:auto;font-size:13.5px;line-height:1.75;color:var(--ink);padding-right:6px;margin:4px 0 0}
+.terms h4{font-size:14px;margin:14px 0 4px;color:var(--accent)}
+.terms h4:first-child{margin-top:4px}
+.terms ul{margin:0;padding-left:20px}
+.terms li{margin:2px 0}
+.terms p{color:var(--ink);font-size:13.5px;margin:0 0 6px}
+.linkbtn{border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline;padding:4px 2px}
+.linkbtn:hover{color:var(--ink)}
 .safety{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
 .safety span{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;font-weight:600;text-align:center;padding:8px 0;background:var(--surface2);border-radius:10px;letter-spacing:.06em}
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:30}
@@ -245,7 +254,7 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
     <button class="btn primary newbtn" id="btnNew"><span data-i="plus"></span>新增聯絡人</button>
     <div class="list-title">聯絡人</div>
     <div class="contacts" id="contacts"></div>
-    <div class="side-foot"><button class="btn ghost sm block" id="btnSettings"><span data-i="gear"></span>設定</button></div>
+    <div class="side-foot" style="flex-direction:column;gap:4px"><button class="btn ghost sm block" id="btnSettings"><span data-i="gear"></span>設定</button><button class="linkbtn" data-terms>使用條款、隱私與免責聲明</button></div>
   </aside>
 
   <main class="main">
@@ -253,7 +262,7 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
     <section class="view scroll" id="vAdd">
       <div class="page">
         <div class="page-head"><button class="icon back" data-back data-i="back"></button><h2>新增聯絡人</h2></div>
-        <p class="lead">只需配對一次。配對後彼此會存成聯絡人，之後雙方打開這個頁面就會自動連上。</p>
+        <p class="lead">和朋友直接互傳訊息與大型檔案，沒有一般通訊軟體的檔案大小限制。只需配對一次，之後雙方打開這個頁面就會自動連上。</p>
 
         <div class="seg" id="seg"><button data-tab="invite" class="on">我要邀請別人</button><button data-tab="join">我收到邀請</button></div>
 
@@ -326,7 +335,7 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
           </div>
         </details>
 
-        <div class="secnote"><span data-i="shield"></span><div>所有訊息與檔案都直接在兩台裝置間傳送，並經過端對端加密：每次連線以 ECDH 產生新金鑰，內容用 AES-256-GCM 逐塊加密驗證，雙方以裝置身分金鑰簽章防止冒充。公共中繼只轉交加密過的連線資訊，看不到內容，也不需要帳號。訊息不會被儲存。</div></div>
+        <div class="secnote"><span data-i="shield"></span><div>所有訊息與檔案都直接在兩台裝置間傳送，並經過端對端加密：每次連線以 ECDH 產生新金鑰，內容用 AES-256-GCM 逐塊加密驗證，雙方以裝置身分金鑰簽章防止冒充。公共中繼只轉交加密過的連線資訊，看不到內容，也不需要帳號。訊息與檔案不會被儲存。<br><button class="linkbtn" data-terms style="padding-left:0">使用條款、隱私與免責聲明</button></div></div>
       </div>
     </section>
 
@@ -366,6 +375,7 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
           <div class="set-row"><div class="t"><b>使用公共中繼</b><span>邀請連結、QR Code、邀請碼和自動重連都需要。中繼只轉交加密過的連線資訊。關閉後只能用手動模式。</span></div><label class="switch"><input type="checkbox" id="optAuto"><i></i></label></div>
           <div class="set-row"><div class="t"><b>使用公共 STUN</b><span>不同網路之間連線需要，用來查詢自己的公網位址。同一個區網可關閉。</span></div><label class="switch"><input type="checkbox" id="optStun"><i></i></label></div>
           <div class="set-row"><div class="t"><b>我的裝置 ID</b><span class="mono" id="fullId" style="word-break:break-all"></span></div></div>
+          <div class="set-row"><div class="t"><b>使用條款、隱私與免責聲明</b><span>這個程式存了什麼、誰看得到什麼，以及使用規範。</span></div><button class="btn ghost sm" data-terms>查看</button></div>
           <div class="set-row"><div class="t"><b>清除本機資料</b><span>刪除身分金鑰與所有聯絡人，之後所有人都需要重新配對。</span></div><button class="btn ghost sm" id="btnWipe" style="color:var(--warn)">清除</button></div>
         </div>
       </div>
@@ -1024,20 +1034,20 @@ const stateOf = id => sessions.has(id) ? 'on' : (autoPending.has(id) ? 'mid' : '
 const stateText = id => sessions.has(id) ? '在線 · 已加密' : autoPending.has(id) ? '連線中…' : '離線';
 
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 2200); }
-function modal({title, text, node, input, ok='確定', cancel='取消', danger=false}){
+function modal({title, text, node, input, ok='確定', cancel='取消', danger=false, force=false, wide=false}){
   return new Promise(res => {
-    const bg = $('modal'), box = bg.firstElementChild; box.textContent = '';
+    const bg = $('modal'), box = bg.firstElementChild; box.textContent = ''; box.className = 'modal' + (wide ? ' wide' : '');
     const h = document.createElement('h3'); h.textContent = title; box.appendChild(h);
     if (text){ const p = document.createElement('p'); p.textContent = text; box.appendChild(p); }
     if (node) box.appendChild(node);
     let inp; if (input !== undefined){ inp = document.createElement('input'); inp.className = 'field'; inp.value = input; box.appendChild(inp); }
     const act = document.createElement('div'); act.className = 'actions';
     const done = v => { bg.classList.remove('on'); document.removeEventListener('keydown', key); res(v); };
-    const key = e => { if (e.key === 'Escape') done(null); if (e.key === 'Enter' && inp) done(inp.value); };
+    const key = e => { if (e.key === 'Escape' && !force) done(null); if (e.key === 'Enter' && inp) done(inp.value); };
     if (cancel){ const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = cancel; b.onclick = () => done(null); act.appendChild(b); }
     const b = document.createElement('button'); b.className = 'btn ' + (danger ? 'danger' : 'primary'); b.textContent = ok; b.onclick = () => done(inp ? inp.value : true); act.appendChild(b);
     box.appendChild(act); bg.classList.add('on'); document.addEventListener('keydown', key);
-    bg.onclick = e => { if (e.target === bg) done(null); };
+    bg.onclick = e => { if (e.target === bg && !force) done(null); };
     (inp || b).focus(); if (inp) inp.select();
   });
 }
@@ -1143,6 +1153,48 @@ function previewJoin(){
   if (expired) $('btnJoin').disabled = true;
   return inv;
 }
+
+/* ---- 使用條款、隱私與免責聲明 ---- */
+const TERMS_VERSION = 1;
+const TERMS = [
+  ['p', '這是一個讓你和朋友直接互傳訊息與大型檔案的開源小工具，由個人開發、免費提供。'],
+  ['h', '使用規範'],
+  ['ul', [
+    '請遵守你所在地的法律，只傳送你有權分享的內容。',
+    '請勿用於侵害著作權、散布違法內容、詐騙或任何違法用途。',
+    '傳送的內容由使用者自行負責。開發者看不到、也無法審查或控制任何人傳送的內容。'
+  ]],
+  ['h', '這個程式存了什麼'],
+  ['ul', [
+    '開發者沒有經營任何伺服器，也不收集任何資料。',
+    '程式只在你自己的瀏覽器裡保存：裝置身分金鑰、聯絡人清單（對方的 ID、公鑰、名稱，以及自動重連用的配對密鑰）、你的設定，以及尚未使用的邀請。',
+    '訊息與檔案不會被儲存，關閉頁面就會消失。你下載的檔案只存在你自己的裝置上。',
+    '你可以隨時在「設定 → 清除本機資料」刪除以上所有資料。開發者無法替你刪除或找回任何資料。'
+  ]],
+  ['h', '第三方服務看得到什麼'],
+  ['ul', [
+    '網站主機（GitHub Pages）可能依其政策記錄造訪者的 IP 等存取紀錄。',
+    '公共中繼（EMQX、HiveMQ、Mosquitto）與 STUN 服務（Google、Cloudflare）看得到你的 IP 位址與連線時間，但看不到訊息或檔案內容。',
+    '點對點連線的特性是：與你連線的對方裝置會得知你的 IP 位址。請只和你信任的人連線。'
+  ]],
+  ['h', '免責聲明'],
+  ['p', '本軟體依「現狀」提供，不提供任何明示或默示的保證，也未經第三方安全稽核。對於使用本軟體造成的任何損失、資料遺失，或因使用者行為產生的法律責任，開發者概不負責。']
+];
+function termsNode(){
+  const d = document.createElement('div'); d.className = 'terms';
+  for (const [type, val] of TERMS){
+    if (type === 'h'){ const h = document.createElement('h4'); h.textContent = val; d.appendChild(h); }
+    else if (type === 'p'){ const p = document.createElement('p'); p.textContent = val; d.appendChild(p); }
+    else { const ul = document.createElement('ul'); for (const t of val){ const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); } d.appendChild(ul); }
+  }
+  return d;
+}
+async function ensureTerms(){
+  if (settings.agreed === TERMS_VERSION) return;
+  await modal({title:'使用前請閱讀', node:termsNode(), ok:'我了解並同意', cancel:null, force:true, wide:true});
+  settings.agreed = TERMS_VERSION; await saveSettings();
+}
+document.querySelectorAll('[data-terms]').forEach(b => b.onclick = () => modal({title:'使用條款、隱私與免責聲明', node:termsNode(), ok:'關閉', cancel:null, wide:true}));
 
 /* ---- 事件：導覽 ---- */
 $('btnNew').onclick = () => { go('add'); };
@@ -1279,6 +1331,7 @@ $('btnWipe').onclick = async () => {
   await restoreInvite();
   setInterval(tick, 3000); setInterval(updateTimer, 1000);
 
+  await ensureTerms();
   const takeLink = () => {
     const inv = decodeInvite(location.hash); if (!inv) return false;
     history.replaceState(null, '', location.href.split('#')[0]);
