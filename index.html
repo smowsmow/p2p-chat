@@ -32,6 +32,7 @@ svg{display:block}
 .btn{border:0;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .05s}
 .btn:active{transform:translateY(1px)}
 .btn svg{width:17px;height:17px;flex:none}
+a.btn{text-decoration:none;color:inherit}
 .btn{white-space:nowrap;flex:none}
 .btn.block{flex:1}
 .btn.primary{background:var(--accent);color:var(--accent-ink)}
@@ -216,6 +217,8 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
 .terms p{color:var(--ink);font-size:13.5px;margin:0 0 6px}
 .linkbtn{border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline;padding:4px 2px}
 .linkbtn:hover{color:var(--ink)}
+.linkbtn.gh{display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-weight:600}
+.linkbtn.gh svg{width:14px;height:14px}
 .safety{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
 .safety span{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;font-weight:600;text-align:center;padding:8px 0;background:var(--surface2);border-radius:10px;letter-spacing:.06em}
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:30}
@@ -254,7 +257,7 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
     <button class="btn primary newbtn" id="btnNew"><span data-i="plus"></span>新增聯絡人</button>
     <div class="list-title">聯絡人</div>
     <div class="contacts" id="contacts"></div>
-    <div class="side-foot" style="flex-direction:column;gap:4px"><button class="btn ghost sm block" id="btnSettings"><span data-i="gear"></span>設定</button><button class="linkbtn" data-terms>使用條款、隱私與免責聲明</button></div>
+    <div class="side-foot" style="flex-direction:column;gap:4px"><button class="btn ghost sm block" id="btnSettings"><span data-i="gear"></span>設定</button><div class="row" style="justify-content:center;gap:12px"><a class="linkbtn gh" href="https://github.com/smowsmow/p2p-chat" target="_blank" rel="noopener"><span data-i="code"></span>開源 · GitHub</a><button class="linkbtn" data-terms>條款與隱私</button></div></div>
   </aside>
 
   <main class="main">
@@ -335,7 +338,7 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
           </div>
         </details>
 
-        <div class="secnote"><span data-i="shield"></span><div>所有訊息與檔案都直接在兩台裝置間傳送，並經過端對端加密：每次連線以 ECDH 產生新金鑰，內容用 AES-256-GCM 逐塊加密驗證，雙方以裝置身分金鑰簽章防止冒充。公共中繼只轉交加密過的連線資訊，看不到內容，也不需要帳號。訊息與檔案不會被儲存。<br><button class="linkbtn" data-terms style="padding-left:0">使用條款、隱私與免責聲明</button></div></div>
+        <div class="secnote"><span data-i="shield"></span><div>所有訊息與檔案都直接在兩台裝置間傳送，並經過端對端加密：每次連線以 ECDH 結合抗量子的 ML-KEM-768 產生新金鑰，內容用 AES-256-GCM 逐塊加密驗證並定期輪替金鑰，雙方以裝置身分金鑰簽章防止冒充。公共中繼只轉交加密過的連線資訊，看不到內容，也不需要帳號。訊息與檔案不會被儲存。<br><button class="linkbtn" data-terms style="padding-left:0">使用條款、隱私與免責聲明</button> · <a class="linkbtn" href="https://github.com/smowsmow/p2p-chat" target="_blank" rel="noopener">GitHub 原始碼</a></div></div>
       </div>
     </section>
 
@@ -375,6 +378,7 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
           <div class="set-row"><div class="t"><b>使用公共中繼</b><span>邀請連結、QR Code、邀請碼和自動重連都需要。中繼只轉交加密過的連線資訊。關閉後只能用手動模式。</span></div><label class="switch"><input type="checkbox" id="optAuto"><i></i></label></div>
           <div class="set-row"><div class="t"><b>使用公共 STUN</b><span>不同網路之間連線需要，用來查詢自己的公網位址。同一個區網可關閉。</span></div><label class="switch"><input type="checkbox" id="optStun"><i></i></label></div>
           <div class="set-row"><div class="t"><b>我的裝置 ID</b><span class="mono" id="fullId" style="word-break:break-all"></span></div></div>
+          <div class="set-row"><div class="t"><b>開放原始碼</b><span>這個程式完全開源（MIT 授權），任何人都可以檢視程式碼、確認它真的沒有收集資料。</span></div><a class="btn ghost sm" href="https://github.com/smowsmow/p2p-chat" target="_blank" rel="noopener" data-i="code">GitHub</a></div>
           <div class="set-row"><div class="t"><b>使用條款、隱私與免責聲明</b><span>這個程式存了什麼、誰看得到什麼，以及使用規範。</span></div><button class="btn ghost sm" data-terms>查看</button></div>
           <div class="set-row"><div class="t"><b>清除本機資料</b><span>刪除身分金鑰與所有聯絡人，之後所有人都需要重新配對。</span></div><button class="btn ghost sm" id="btnWipe" style="color:var(--warn)">清除</button></div>
         </div>
@@ -387,6 +391,20 @@ img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;ma
 <div id="toast"></div>
 <div id="drop">放開以加密傳送檔案</div>
 
+<script>
+/*! ML-KEM-768（抗量子金鑰交換）取自 @noble/post-quantum v0.7.1 — MIT License, Copyright (c) 2024 Paul Miller — https://github.com/paulmillr/noble-post-quantum */
+(()=>{var Y=BigInt(4294967295),lt=BigInt(32);function Pt(t,e=!1){return e?{h:Number(t&Y),l:Number(t>>lt&Y)}:{h:Number(t>>lt&Y)|0,l:Number(t&Y)|0}}function yt(t,e=!1){let n=t.length,s=new Uint32Array(n),o=new Uint32Array(n);for(let r=0;r<n;r++){let{h:c,l:f}=Pt(t[r],e);[s[r],o[r]]=[c,f]}return[s,o]}function rt(t){return t instanceof Uint8Array||ArrayBuffer.isView(t)&&t.constructor.name==="Uint8Array"&&"BYTES_PER_ELEMENT"in t&&t.BYTES_PER_ELEMENT===1}var q=t=>t?`"${t}" `:"";function H(t,e=""){if(typeof t!="number")throw new TypeError(q(e)+"expected number, got "+typeof t);if(!Number.isSafeInteger(t)||t<0)throw new RangeError(q(e)+"expected integer >= 0, got "+t);return t}function gt(t,e=""){if(typeof t!="boolean")throw new TypeError(q(e)+"expected boolean, got type="+typeof t);return t}function S(t,e,n=""){if(rt(t)&&(e===void 0||t.length===e))return t;e!==void 0&&H(e,"length");let s=rt(t),o=e!==void 0?` of length ${e}`:"",r=s?`length=${t.length}`:`type=${typeof t}`,c=q(n)+"expected Uint8Array"+o+", got "+r;throw s?new RangeError(c):new TypeError(c)}var Ct=(t,e)=>{if(t===null||typeof t!="object"||Array.isArray(t))throw new TypeError((e==="object"?"":`"${e}" `)+"expected object, got type="+typeof t)},ht=(t,e)=>{Ct(t,e);let n=Object.getPrototypeOf(t);if(n!==Object.prototype&&n!==null)throw new TypeError(`"${e}" expected plain object`);if(Object.hasOwn(t,"__proto__"))throw new TypeError(`"${e}.__proto__" is not allowed`)};function ot(t,e=!0){if(t.destroyed)throw new Error("hash was destroyed");if(e&&t.finished)throw new Error("digest() was already called")}function xt(t,e){S(t,void 0,"output");let n=e.outputLen;if(!(t.length>=n))throw new RangeError('"output" expected length >= '+n)}function z(t){return new Uint32Array(t.buffer,t.byteOffset,Math.floor(t.byteLength/4))}function st(...t){for(let e=0;e<t.length;e++)t[e].fill(0)}var wt=new Uint8Array(new Uint32Array([287454020]).buffer)[0]===68;function Mt(t){return t<<24&4278190080|t<<8&16711680|t>>>8&65280|t>>>24&255}function zt(t){for(let e=0;e<t.length;e++)t[e]=Mt(t[e]);return t}var C=wt?t=>t:zt;function ct(t,e,n="opts"){return ht(t,"defaults"),e!==void 0&&ht(e,n),Object.assign(Object.create(null),t,e)}function it(t,e={}){if(typeof t!="function")throw new TypeError('"hashCons" expected function, got type='+typeof t);e=ct({},e,"info");let n=(o,r)=>t(r).update(o).digest(),s=t(void 0);return n.outputLen=s.outputLen,n.blockLen=s.blockLen,n.canXOF=s.canXOF,n.create=o=>t(o),Object.assign(n,e),Object.freeze(n)}function bt(t=32){H(t,"bytesLength");let e=typeof globalThis=="object"?globalThis.crypto:null;if(typeof e?.getRandomValues!="function")throw new Error("crypto.getRandomValues must be defined");if(t>65536)throw new RangeError(`"bytesLength" expected <= 65536, got ${t}`);return e.getRandomValues(new Uint8Array(t))}var D=t=>({oid:Uint8Array.from([6,9,96,134,72,1,101,3,4,2,t])});var Dt=BigInt(0),X=BigInt(1),Xt=BigInt(2),vt=BigInt(7),Vt=BigInt(256),Zt=BigInt(113),Tt=[],Ot=[],At=[];for(let t=0,e=X,n=1,s=0;t<24;t++){[n,s]=[s,(2*n+3*s)%5],Tt.push(2*(5*s+n)),Ot.push((t+1)*(t+2)/2%64);let o=Dt;for(let r=0;r<7;r++)e=(e<<X^(e>>vt)*Zt)%Vt,e&Xt&&(o^=X<<(X<<BigInt(r))-X);At.push(o)}var Bt=yt(At,!0),Gt=Bt[0],Yt=Bt[1],qt=(t,e,n)=>t<<n|e>>>32-n,Qt=(t,e,n)=>e<<n|t>>>32-n,Jt=(t,e,n)=>e<<n-32|t>>>64-n,Wt=(t,e,n)=>t<<n-32|e>>>64-n,mt=(t,e,n)=>n>32?Jt(t,e,n):qt(t,e,n),Et=(t,e,n)=>n>32?Wt(t,e,n):Qt(t,e,n),M=new Uint32Array(10);function te(t,e=24){if(!(t instanceof Uint32Array))throw new TypeError('"s" expected Uint32Array(50), got type='+typeof t);if(t.length!==50)throw new RangeError('"s" expected Uint32Array(50), got length='+t.length);if(H(e,"rounds"),e<1||e>24)throw new Error('"rounds" expected integer 1..24');for(let n=24-e;n<24;n++){for(let r=0;r<10;r++)M[r]=t[r]^t[r+10]^t[r+20]^t[r+30]^t[r+40];for(let r=0;r<10;r+=2){let c=(r+8)%10,f=(r+2)%10,p=M[f],a=M[f+1],k=mt(p,a,1)^M[c],x=Et(p,a,1)^M[c+1];for(let _=0;_<50;_+=10)t[r+_]^=k,t[r+_+1]^=x}let s=t[2],o=t[3];for(let r=0;r<24;r++){let c=Ot[r],f=mt(s,o,c),p=Et(s,o,c),a=Tt[r];s=t[a],o=t[a+1],t[a]=f,t[a+1]=p}for(let r=0;r<50;r+=10){let c=t[r],f=t[r+1],p=t[r+2],a=t[r+3];t[r]^=~t[r+2]&t[r+4],t[r+1]^=~t[r+3]&t[r+5],t[r+2]^=~t[r+4]&t[r+6],t[r+3]^=~t[r+5]&t[r+7],t[r+4]^=~t[r+6]&t[r+8],t[r+5]^=~t[r+7]&t[r+9],t[r+6]^=~t[r+8]&c,t[r+7]^=~t[r+9]&f,t[r+8]^=~c&p,t[r+9]^=~f&a}t[0]^=Gt[n],t[1]^=Yt[n]}st(M)}var Q=class t{state;pos=0;posOut=0;finished=!1;state32;destroyed=!1;blockLen;suffix;outputLen;canXOF;enableXOF=!1;rounds;constructor(e,n,s,o=!1,r=24){if(H(e,"blockLen"),H(n,"suffix"),H(r,"rounds"),gt(o,"enableXOF"),this.blockLen=e,this.suffix=n,this.outputLen=s,this.enableXOF=o,this.canXOF=o,this.rounds=r,H(s,"outputLen"),!(0<e&&e<200))throw new Error('"blockLen" must be 1..199');this.state=new Uint8Array(200),this.state32=z(this.state)}clone(){return this._cloneInto()}keccak(){C(this.state32),te(this.state32,this.rounds),C(this.state32),this.posOut=0,this.pos=0}update(e){ot(this),S(e);let{blockLen:n,state:s,state32:o}=this,r=e.length,c=n%4===0&&e.byteOffset%4===0,f=n/4,p=c&&r>=n?z(e):void 0;for(let a=0;a<r;){if(p!==void 0&&this.pos===0&&a%4===0&&r-a>=n){for(let x=0,_=a/4;x<f;x++)o[x]^=p[_+x];a+=n,this.pos=n,this.keccak();continue}let k=Math.min(n-this.pos,r-a);for(let x=0;x<k;x++)s[this.pos++]^=e[a++];this.pos===n&&this.keccak()}return this}finish(){if(this.finished)return;this.finished=!0;let{state:e,suffix:n,pos:s,blockLen:o}=this;e[s]^=n,(n&128)!==0&&s===o-1&&this.keccak(),e[o-1]^=128,this.keccak()}writeInto(e){ot(this,!1),S(e),this.finish();let n=this.state,{blockLen:s}=this;for(let o=0,r=e.length;o<r;){this.posOut>=s&&this.keccak();let c=Math.min(s-this.posOut,r-o);e.set(n.subarray(this.posOut,this.posOut+c),o),this.posOut+=c,o+=c}return e}xofInto(e){if(!this.enableXOF)throw new Error("XOF is not enabled");return this.writeInto(e)}xof(e){return H(e),this.xofInto(new Uint8Array(e))}digestInto(e){if(xt(e,this),this.finished)throw new Error("digest() was already called");this.writeInto(e.length===this.outputLen?e:e.subarray(0,this.outputLen)),this.destroy()}digest(){let e=new Uint8Array(this.outputLen);return this.digestInto(e),e}destroy(){this.destroyed=!0,st(this.state)}_cloneInto(e){let{blockLen:n,suffix:s,outputLen:o,rounds:r,enableXOF:c}=this;return e||=new t(n,s,o,c,r),e.blockLen=n,e.state32.set(this.state32),e.pos=this.pos,e.posOut=this.posOut,e.finished=this.finished,e.rounds=r,e.suffix=s,e.outputLen=o,e.enableXOF=c,e.canXOF=this.canXOF,e.destroyed=this.destroyed,e}},kt=(t,e,n,s={})=>it(()=>new Q(e,t,n),s);var _t=kt(6,136,32,D(8));var Lt=kt(6,72,64,D(10));var Ut=(t,e,n,s={})=>it((o={})=>(o=ct({},o),new Q(e,t,o.dkLen===void 0?n:o.dkLen,!0)),s),$t=Ut(31,168,16,D(11)),J=Ut(31,136,32,D(12));function ft(t,e="object"){if(t===null||typeof t!="object"||Array.isArray(t))throw new TypeError(e==="object"?"expected valid options object":`"${e}" expected object, got type=${typeof t}`);return t}function jt(t,e={},n={},s="object"){ft(t,s),ft(e,"fields"),ft(n,"optFields");function o(c,f,p){let a=s==="object"?`param "${String(c)}"`:`"${s}.${String(c)}"`,k=t[c];if(!Object.hasOwn(t,c)&&(p?k!==void 0:f!=="function"))throw new TypeError(`${a} is invalid: expected own property`);if(p&&k===void 0)return;let x=typeof k;if(x!==f||k===null)throw new TypeError(`${a} is invalid: expected ${f}, got ${x}`)}let r=(c,f)=>Object.entries(c).forEach(([p,a])=>o(p,a,f));r(e,!1),r(n,!0)}function v(t,e="n"){if(typeof t!="number")throw new TypeError(`wrong u32 integer "${e}": expected number, got type=${typeof t}`);if(!Number.isSafeInteger(t)||t<0||t>4294967295)throw new RangeError(`wrong u32 integer "${e}": expected 0..4294967295, got ${t}`);return t}function St(t){return v(t,"x"),(t&t-1)===0&&t!==0}function ut(t,e){if(v(t),typeof e!="number")throw new TypeError('"bits" expected number, got type='+typeof e);if(!Number.isSafeInteger(e)||e<0||e>32)throw new Error(`expected integer 0 <= bits <= 32, got ${e}`);let n=0;for(let s=0;s<e;s++,t>>>=1)n=n<<1|t&1;return n>>>0}function Ht(t){return v(t),31-Math.clz32(t)}function It(t){if(!t||typeof t!="object"||typeof t.length!="number")throw new TypeError('"values" expected array-like, got type='+typeof t);let e=t.length;if(!St(e))throw new Error("expected positive power-of-two length, got "+e);let n=Ht(e);for(let s=0;s<e;s++){let o=ut(s,n);if(s<o){let r=t[s];t[s]=t[o],t[o]=r}}return t}var pt=(t,e)=>{jt(e,{N:"number",roots:"object",dit:"boolean"},{invertButterflies:"boolean",skipStages:"number",brp:"boolean"},"coreOpts");let{N:n,roots:s,dit:o,invertButterflies:r=!1,skipStages:c=0,brp:f=!0}=e;v(n,"coreOpts.N");let p=Ht(n);if(!St(n))throw new Error("FFT: Polynomial size should be power of two");v(c,"coreOpts.skipStages");let a=p===0?0:p-1;if(c>a)throw new Error(`FFT: wrong skipStages: expected 0 <= skipStages <= ${a}`);if(s.length!==n)throw new Error(`FFT: wrong roots length: expected ${n}, got ${s.length}`);let k=o!==r;return x=>{if(x.length!==n)throw new Error("FFT: wrong Polynomial length");o&&f&&It(x);for(let _=0,m=1;_<p-c;_++){let E=o?_+1+c:p-_,A=1<<E,B=A>>1,b=n>>E;for(let T=0;T<n;T+=A)for(let i=0,u=m++;i<B;i++){let d=r?o?n-u:u:i*b,w=T+i,l=T+i+B,y=s[d],g=x[l],O=x[w];if(k){let h=t.mul(g,y);x[w]=t.add(O,h),x[l]=t.sub(O,h)}else r?(x[w]=t.add(g,O),x[l]=t.mul(t.sub(g,O),y)):(x[w]=t.add(O,g),x[l]=t.mul(t.sub(O,g),y))}}return!o&&f&&It(x),x}};var R=S;var W=bt;function ee(t,e,n=()=>{}){if(!Array.isArray(t))throw new TypeError(`"${e}" expected array, got type=${typeof t}`);for(let s=0;s<t.length;s++)n(t[s],`${e}[${s}]`);return t}function N(t,e){if(t=S(t),e=S(e),t.length!==e.length)return!1;let n=0;for(let s=0;s<t.length;s++)n|=t[s]^e[s];return n===0}function at(t){return new Uint8Array(S(t))}function V(t,...e){let n=o=>typeof o=="number"?o:o.bytesLen,s=e.reduce((o,r)=>o+n(r),0);return{bytesLen:s,encode:o=>{let r=new Uint8Array(s);for(let c=0,f=0;c<e.length;c++){let p=e[c],a=n(p),k=typeof p=="number"?o[c]:p.encode(o[c]);S(k,a,t),r.set(k,f),typeof p!="number"&&k.fill(0),f+=a}return r},decode:o=>{S(o,s,t);let r=[];for(let c of e){let f=n(c),p=o.subarray(0,f);r.push(typeof c=="number"?p:c.decode(p)),o=o.subarray(f)}return r}}}function tt(t,e){let n=t,s=e*n.bytesLen;return{bytesLen:s,encode:o=>{let r=ee(o,"u");if(r.length!==e)throw new RangeError(`vecCoder.encode: wrong length=${r.length}. Expected: ${e}`);let c=new Uint8Array(s);for(let f=0,p=0;f<r.length;f++){let a=n.encode(r[f]);c.set(a,p),a.fill(0),p+=a.length}return c},decode:o=>{S(o,s);let r=[];for(let c=0;c<o.length;c+=n.bytesLen)r.push(n.decode(o.subarray(c,c+n.bytesLen)));return r}}}function L(...t){for(let e of t)if(Array.isArray(e))for(let n of e)n.fill(0);else e.fill(0)}function et(t){if(H(t,"bits"),t>32)throw new RangeError('"bits" expected <= 32, got '+t);return t===32?4294967295:~(-1<<t)>>>0}var Rt=t=>{let{newPoly:e,N:n,Q:s,F:o,ROOT_OF_UNITY:r,brvBits:c,isKyber:f}=t,p=(i,u=s)=>{let d=i%u|0;return(d>=0?d|0:u+d|0)|0},a=(i,u=s)=>{let d=p(i,u)|0;return(d>u>>1?d-u|0:d)|0};function k(){let i=e(n);for(let u=0;u<n;u++){let d=ut(u,c),w=BigInt(r)**BigInt(d)%BigInt(s);i[u]=Number(w)|0}return i}let x=k(),_=i=>{throw new Error("not implemented")},m=f?{add:(i,u)=>{let d=i+u|0;return d>=s?d-s|0:d},sub:(i,u)=>{let d=i-u|0;return d<0?d+s|0:d},mul:(i,u)=>p((i|0)*(u|0))|0,inv:_}:{add:(i,u)=>p((i|0)+(u|0))|0,sub:(i,u)=>p((i|0)-(u|0))|0,mul:(i,u)=>p((i|0)*(u|0))|0,inv:_},E={N:n,roots:x,invertButterflies:!0,skipStages:f?1:0,brp:!1},A=pt(m,{dit:!1,...E}),B=pt(m,{dit:!0,...E}),b={encode:i=>A(i),decode:i=>{B(i);for(let u=0;u<i.length;u++)i[u]=p(o*i[u]);return i}};return{mod:p,smod:a,nttZetas:x,NTT:{encode:i=>b.encode(i),decode:i=>b.decode(i)},bitsCoder:(i,u)=>{for(let l=0,y=0;l<n;l++)y+=i,y>32&&et(y),y%=8;let d=et(i),w=i*(n/8);return{bytesLen:w,encode:l=>{let y=l,g=new Uint8Array(w);for(let O=0,h=0,j=0,K=0;O<y.length;O++)for(h|=(u.encode(y[O])&d)<<j,j+=i;j>=8;j-=8,h>>=8)g[K++]=h&255;return g},decode:l=>{let y=e(n);for(let g=0,O=0,h=0,j=0;g<l.length;g++)for(O|=l[g]<<h,h+=8;h>=i;h-=i,O>>=i)y[j++]=u.decode(O&d);return y}}}}},ne=t=>(e,n)=>{n||(n=t.blockLen);let s=new Uint8Array(e.length+2);s.set(e);let o=e.length,r=new Uint8Array(n),c=t.create({}),f=0,p=0;return{stats:()=>({calls:f,xofs:p}),get:(a,k)=>(s[o+0]=a,s[o+1]=k,c.destroy(),c=t.create({}).update(s),f++,()=>(p++,c.xofInto(r))),clean:()=>{c.destroy(),L(r,s)}}},Kt=ne($t);var $=256,U=3329,re=3303,oe=17,I=Rt({N:$,Q:U,F:re,ROOT_OF_UNITY:oe,newPoly:t=>new Uint16Array(t),brvBits:7,isKyber:!0}),se=Object.freeze({512:Object.freeze({N:$,Q:U,K:2,ETA1:3,ETA2:2,du:10,dv:4,RBGstrength:128}),768:Object.freeze({N:$,Q:U,K:3,ETA1:2,ETA2:2,du:10,dv:4,RBGstrength:192}),1024:Object.freeze({N:$,Q:U,K:4,ETA1:2,ETA2:2,du:11,dv:5,RBGstrength:256})}),ce=t=>{if(t>=12)return{encode:n=>n,decode:n=>n>=U?n-U:n};let e=2**(t-1);return{encode:n=>((n<<t)+U/2)/U,decode:n=>n*U+e>>>t}},ie=t=>I.bitsCoder(t,t===12?{encode:e=>e,decode:e=>e>=U?e-U:e}:{encode:e=>e,decode:e=>e}),Z=t=>t===12?ie(12):I.bitsCoder(t,ce(t));function F(t,e){let n=t,s=e;for(let o=0;o<$;o++){let r=n[o]+s[o];n[o]=r>=U?r-U:r}}function fe(t,e){let n=t,s=e;for(let o=0;o<$;o++){let r=n[o]-s[o];n[o]=r<0?r+U:r}}function ue(t,e,n,s,o){let r=I.mod(I.mod(e*s)*o+t*n),c=I.mod(t*s+e*n);return{c0:r,c1:c}}function nt(t,e){let n=t,s=e;for(let o=0;o<$/2;o++){let r=I.nttZetas[64+(o>>1)];o&1&&(r=-r);let{c0:c,c1:f}=ue(n[2*o+0],n[2*o+1],s[2*o+0],s[2*o+1],r);n[2*o+0]=c,n[2*o+1]=f}return n}function dt(t){let e=t,n=new Uint16Array($);for(let s=0;s<$;){let o=e();if(o.length%3)throw new Error("SampleNTT: unaligned block");for(let r=0;s<$&&r+3<=o.length;r+=3){let c=(o[r+0]>>0|o[r+1]<<8)&4095,f=(o[r+1]>>4|o[r+2]<<4)&4095;c<U&&(n[s++]=c),s<$&&f<U&&(n[s++]=f)}}return n}var pe=(t,e)=>{let n=new Uint16Array($),s=z(t);C(s);let o=0;for(let r=0,c=0,f=0,p=0;r<s.length;r++){let a=s[r];for(let k=0;k<32;k++)f+=a&1,a>>=1,o+=1,o===e?(p=f,f=0):o===2*e&&(n[c++]=I.mod(p-f),f=0,o=0)}if(C(s),o)throw new Error(`sampleCBD: leftover bits: ${o}`);return n};function G(t,e,n,s){return pe(t(s*$/4,e,n),s)}var ae=t=>{let e=t,{K:n,PRF:s,XOF:o,HASH512:r,ETA1:c,ETA2:f,du:p,dv:a}=e,k=Z(1),x=Z(a),_=Z(p),m=V("publicKey",tt(Z(12),n),32),E=tt(Z(12),n),A=V("ciphertext",tt(_,n),x),B=V("seed",32,32),b=(T,i,u,d)=>{let w=[];for(let h=0;h<n;h++)w.push(I.NTT.encode(G(s,d,h,c)));let l=new Uint16Array($),y=[];for(let h=0;h<n;h++){let j=G(s,d,n+h,f),K=new Uint16Array($);for(let P=0;P<n;P++){let Ft=i(h,P);F(K,nt(Ft,w[P]))}F(j,I.NTT.decode(K)),y.push(j),F(l,nt(T[h],w[h])),L(K)}let g=G(s,d,2*n,f);F(g,I.NTT.decode(l));let O=k.decode(u);return F(O,g),L(T,w,l,g),A.encode([y,O])};return{secretCoder:E,lengths:{secretKey:E.bytesLen,publicKey:m.bytesLen,cipherText:A.bytesLen},keygen:T=>{R(T,32,"seed");let i=new Uint8Array(33);i.set(T),i[32]=n;let u=r(i),[d,w]=B.decode(u),l=[],y=[];for(let h=0;h<n;h++)l.push(I.NTT.encode(G(s,w,h,c)));let g=o(d);for(let h=0;h<n;h++){let j=I.NTT.encode(G(s,w,n+h,c));for(let K=0;K<n;K++){let P=dt(g.get(K,h));F(j,nt(P,l[K]))}y.push(j)}g.clean();let O={publicKey:m.encode([y,d]),secretKey:E.encode(l)};return L(d,w,l,y,i,u),O},encrypt:(T,i,u)=>{let[d,w]=m.decode(T),l=o(w),y=b(d,(g,O)=>dt(l.get(g,O)),i,u);return l.clean(),y},prepare:T=>{let[i,u]=m.decode(T),d=o(u),w=[];for(let l=0;l<n;l++)for(let y=0;y<n;y++)w.push(dt(d.get(l,y)));return d.clean(),{encrypt:(l,y)=>b(i.map(g=>g.slice()),(g,O)=>w[g*n+O].slice(),l,y),clean:()=>L(i,w)}},decrypt:(T,i)=>{let[u,d]=A.decode(T),w=E.decode(i),l=new Uint16Array($);for(let g=0;g<n;g++)F(l,nt(w[g],I.NTT.encode(u[g])));fe(d,I.NTT.decode(l));let y=k.encode(d);return L(l,w,u,d),y}}};function de(t){let e=t,n=ae(e),{HASH256:s,HASH512:o,KDF:r}=e,{secretCoder:c,lengths:f}=n,p=V("secretKey",f.secretKey,f.publicKey,32,32),a=32,k=64,x=(m,E)=>{let A=m.subarray(0,384*e.K),B=c.encode(c.decode(at(A))),b=N(B,A);if(L(B),!b)throw new Error(`ML-KEM.${E}: wrong publicKey modulus`)},_=Object.freeze({...f,seed:64,msg:a,msgRand:a,secretKey:p.bytesLen});return Object.freeze({info:Object.freeze({type:"ml-kem"}),lengths:_,keygen:m=>{let E=m===void 0,A=E?W(k):m,B,b;try{R(A,k,"seed");let T=n.keygen(A.subarray(0,32)),i=T.publicKey;B=T.secretKey,b=s(i);let u=p.encode([B,i,b,A.subarray(32)]);return{publicKey:i,secretKey:u}}finally{B!==void 0&&L(B),b!==void 0&&L(b),E&&L(A)}},getPublicKey:m=>{let[E,A,B,b]=p.decode(m);return Uint8Array.from(A)},encapsulate:(m,E)=>{let A=E===void 0,B=A?W(a):E,b;try{return R(m,f.publicKey,"publicKey"),R(B,a,"message"),x(m,"encapsulate"),b=o.create().update(B).update(s(m)).digest(),{cipherText:n.encrypt(m,B,b.subarray(32,64)),sharedSecret:b.subarray(0,32)}}finally{b!==void 0&&L(b.subarray(32)),A&&L(B)}},decapsulate:(m,E)=>{R(E,p.bytesLen,"secretKey"),R(m,f.cipherText,"cipherText");let A=p.bytesLen-96,B=A+32,b=s(E.subarray(A/2,B));if(!N(b,E.subarray(B,B+32)))throw new Error("invalid secretKey: hash check failed");let[T,i,u,d]=p.decode(E),w=n.decrypt(m,T),l=o.create().update(w).update(u).digest(),y=l.subarray(0,32),g=n.encrypt(i,w,l.subarray(32,64)),O=N(m,g),h=r.create({dkLen:32}).update(d).update(m).digest();return L(w,g,l.subarray(32),O?h:y),O?y:h},prepare:m=>{R(m,f.publicKey,"publicKey"),x(m,"prepare");let E=at(m),A=s(E),B=n.prepare(E);return Object.freeze({publicKey:E,encapsulate:b=>{let T=b===void 0,i=T?W(a):b,u;try{return R(i,a,"message"),u=o.create().update(i).update(A).digest(),{cipherText:B.encrypt(i,u.subarray(32,64)),sharedSecret:u.subarray(0,32)}}finally{u!==void 0&&L(u.subarray(32)),T&&L(i)}},decapsulate:(b,T)=>{R(T,p.bytesLen,"secretKey"),R(b,f.cipherText,"cipherText");let[i,u,d,w]=p.decode(T);if(!N(u,E)||!N(d,A))throw new Error("ML-KEM.decapsulate: secretKey does not match prepared publicKey");let l=n.decrypt(b,i),y=o.create().update(l).update(A).digest(),g=y.subarray(0,32),O=B.encrypt(l,y.subarray(32,64)),h=N(b,O),j=r.create({dkLen:32}).update(w).update(b).digest();return L(l,O,y.subarray(32),h?j:g),h?g:j},clean:B.clean})}})}function le(t,e,n){return J.create({dkLen:t}).update(e).update(new Uint8Array([n])).digest()}var ye={HASH256:_t,HASH512:Lt,KDF:J,XOF:Kt,PRF:le},he=t=>de({...ye,...t});var Nt=he(se[768]);globalThis.MLKEM768=Nt;})();
+/*! Bundled license information:
+
+@noble/curves/utils.js:
+  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@noble/post-quantum/utils.js:
+@noble/post-quantum/_crystals.js:
+@noble/post-quantum/ml-kem.js:
+  (*! noble-post-quantum - MIT License (c) 2024 Paul Miller (paulmillr.com) *)
+*/
+</script>
 <script>
 'use strict';
 /* ================= 圖示 ================= */
@@ -405,6 +423,7 @@ const ICONS = {
   smile:'<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>',
   clip:'<path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',
   send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  code:'<path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>',
   file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>'
 };
 const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]}</svg>`;
@@ -583,6 +602,16 @@ function gatherDone(pc){
   });
 }
 
+// 金鑰輪替：由目前的鏈金鑰推導出這一段的加密金鑰與下一把鏈金鑰，舊的鏈金鑰立即清除（前向保密）
+const EPOCH = 1024n, PAD = 256;
+async function ratchet(st){
+  const hk = await crypto.subtle.importKey('raw', st.chain, 'HKDF', false, ['deriveKey','deriveBits']);
+  const p = info => ({name:'HKDF', hash:'SHA-256', salt:new Uint8Array(32), info:enc.encode(info)});
+  st.key = await crypto.subtle.deriveKey(p('p2pchat v3 msg'), hk, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+  const next = new Uint8Array(await crypto.subtle.deriveBits(p('p2pchat v3 next'), hk, 256));
+  st.chain.fill(0); st.chain = next;
+}
+
 // 依雙方的連線候選位址，推測直連失敗的原因
 function diagnose(s){
   const has = (sdp, t) => new RegExp('typ ' + t).test(sdp || '');
@@ -618,55 +647,109 @@ class Session {
   attach(dc){
     this.dc = dc; dc.binaryType = 'arraybuffer'; dc.bufferedAmountLowThreshold = LOW;
     const chain = fn => { this.rx = this.rx.then(fn).catch(err => this.fail(err)); };
-    dc.onopen = () => chain(() => this.hello());
+    // 握手由 a 方先送出（含抗量子公鑰），b 方收到後才回覆（含封裝後的密文）
+    dc.onopen = () => { if (this.role === 'a') chain(() => this.hello()); };
     dc.onmessage = e => {
       // 對方完成握手後送出的加密資料，偶爾會比它的握手訊息先到：先暫存，握手完成後再依序處理
       if (!this.ready && typeof e.data !== 'string'){ (this.early ||= []).push(e.data); return; }
       chain(() => this.ready ? this.recv(e.data) : this.recvHandshake(e.data));
     };
     dc.onclose = () => this.close();
-    if (dc.readyState === 'open') chain(() => this.hello());
+    if (dc.readyState === 'open' && this.role === 'a') chain(() => this.hello());
   }
-  hello(){ return this.hsSent || (this.hsSent = this.sendHandshake()); }
-  async sendHandshake(){
+  fps(){ this.myFp = fingerprintOf(this.pc.localDescription.sdp); this.peerFp = fingerprintOf(this.pc.remoteDescription.sdp); }
+  hello(){ return this.hsSent || (this.hsSent = this.sendHandshakeA()); }
+
+  /* ---- 握手 v3：ECDH P-256 + ML-KEM-768 混合金鑰交換，雙方以身分金鑰簽署整段握手內容 ---- */
+  async sendHandshakeA(){
+    this.fps();
     this.eph = await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, false, ['deriveBits']);
     this.ephRaw = new Uint8Array(await crypto.subtle.exportKey('raw', this.eph.publicKey));
-    this.myFp = fingerprintOf(this.pc.localDescription.sdp); this.peerFp = fingerprintOf(this.pc.remoteDescription.sdp);
-    const msg = concat(enc.encode(`p2pchat-hs-v2|${this.myFp}|${this.peerFp}|`), this.ephRaw);
-    const sig = new Uint8Array(await crypto.subtle.sign({name:'ECDSA', hash:'SHA-256'}, ME.priv, msg));
-    this.dc.send(JSON.stringify({t:'hs', v:2, id:b64(ME.pubRaw), eph:b64(this.ephRaw), sig:b64(sig)}));
+    const kp = MLKEM768.keygen(); this.kemPk = kp.publicKey; this.kemSk = kp.secretKey;
+    this.Ta = concat(enc.encode(`p2pchat-hs-v3|a|${this.myFp}|${this.peerFp}|`), this.ephRaw, this.kemPk);
+    const sig = new Uint8Array(await crypto.subtle.sign({name:'ECDSA', hash:'SHA-256'}, ME.priv, this.Ta));
+    this.dc.send(JSON.stringify({t:'hs', v:3, r:'a', id:b64(ME.pubRaw), eph:b64(this.ephRaw), kem:b64(this.kemPk), sig:b64(sig)}));
   }
-  async recvHandshake(d){
-    if (typeof d !== 'string') throw new Error('握手前收到非預期資料');
-    await this.hello();
-    const m = JSON.parse(d); if (m.t !== 'hs' || m.v !== 2) throw new Error('對方版本不相容');
+  async checkPeer(m, role){
+    if (m.t !== 'hs' || m.v !== 3) throw new Error('對方使用的是舊版本，請雙方都重新整理頁面或更新到最新版');
+    if (m.r !== role) throw new Error('握手順序錯誤');
     const peerPub = unb64(m.id), peerId = await idOf(peerPub);
     if (peerId === ME.id) throw new Error('不能連線到自己');
     if (this.expect && this.expect !== peerId) throw new Error('對方身分與預期不符，可能遭到冒充，已拒絕連線');
     const vk = await crypto.subtle.importKey('raw', peerPub, {name:'ECDSA', namedCurve:'P-256'}, false, ['verify']);
-    const signed = concat(enc.encode(`p2pchat-hs-v2|${this.peerFp}|${this.myFp}|`), unb64(m.eph));
-    if (!await crypto.subtle.verify({name:'ECDSA', hash:'SHA-256'}, vk, unb64(m.sig), signed)) throw new Error('身分簽章驗證失敗，可能有中間人攻擊');
-    const pe = await crypto.subtle.importKey('raw', unb64(m.eph), {name:'ECDH', namedCurve:'P-256'}, false, []);
-    const shared = await crypto.subtle.deriveBits({name:'ECDH', public:pe}, this.eph.privateKey, 256);
-    const hk = await crypto.subtle.importKey('raw', shared, 'HKDF', false, ['deriveKey']);
-    const ephs = [b64(this.ephRaw), m.eph].sort();
-    const salt = await sha256(enc.encode([this.myFp, this.peerFp].sort().join('|') + '|' + ephs.join('|')));
-    const dk = info => crypto.subtle.deriveKey({name:'HKDF', hash:'SHA-256', salt, info:enc.encode(info)}, hk, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
-    const kAB = await dk('p2pchat a->b'), kBA = await dk('p2pchat b->a');
-    this.txKey = this.role === 'a' ? kAB : kBA; this.rxKey = this.role === 'a' ? kBA : kAB;
+    return {peerPub, peerId, vk};
+  }
+  async recvHandshake(d){
+    if (typeof d !== 'string') throw new Error('握手前收到非預期資料');
+    const m = JSON.parse(d);
+    if (this.role === 'b'){
+      // b 方：驗證 a 的簽章 → 封裝抗量子共享密鑰 → 簽署並回覆
+      this.fps();
+      const {peerPub, peerId, vk} = await this.checkPeer(m, 'a');
+      const ephA = unb64(m.eph), kemPk = unb64(m.kem);
+      if (kemPk.length !== 1184) throw new Error('握手資料格式錯誤');
+      const Ta = concat(enc.encode(`p2pchat-hs-v3|a|${this.peerFp}|${this.myFp}|`), ephA, kemPk);
+      if (!await crypto.subtle.verify({name:'ECDSA', hash:'SHA-256'}, vk, unb64(m.sig), Ta)) throw new Error('身分簽章驗證失敗，可能有中間人攻擊');
+      const {cipherText, sharedSecret} = MLKEM768.encapsulate(kemPk);
+      const eph = await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, false, ['deriveBits']);
+      const ephB = new Uint8Array(await crypto.subtle.exportKey('raw', eph.publicKey));
+      const Tb = concat(enc.encode(`p2pchat-hs-v3|b|${this.myFp}|${this.peerFp}|`), ephB, cipherText, await sha256(Ta));
+      const sig = new Uint8Array(await crypto.subtle.sign({name:'ECDSA', hash:'SHA-256'}, ME.priv, Tb));
+      this.hsSent = Promise.resolve();
+      this.dc.send(JSON.stringify({t:'hs', v:3, r:'b', id:b64(ME.pubRaw), eph:b64(ephB), ct:b64(cipherText), sig:b64(sig)}));
+      const pe = await crypto.subtle.importKey('raw', ephA, {name:'ECDH', namedCurve:'P-256'}, false, []);
+      const ecdh = new Uint8Array(await crypto.subtle.deriveBits({name:'ECDH', public:pe}, eph.privateKey, 256));
+      await this.deriveKeys(ephA, ephB, kemPk, cipherText, ecdh, sharedSecret);
+      return this.finish(peerPub, peerId);
+    }
+    // a 方：驗證 b 的簽章（包含 a 自己送出的內容）→ 解封裝
+    await this.hello();
+    const {peerPub, peerId, vk} = await this.checkPeer(m, 'b');
+    const ephB = unb64(m.eph), ct = unb64(m.ct);
+    if (ct.length !== 1088) throw new Error('握手資料格式錯誤');
+    const Tb = concat(enc.encode(`p2pchat-hs-v3|b|${this.peerFp}|${this.myFp}|`), ephB, ct, await sha256(this.Ta));
+    if (!await crypto.subtle.verify({name:'ECDSA', hash:'SHA-256'}, vk, unb64(m.sig), Tb)) throw new Error('身分簽章驗證失敗，可能有中間人攻擊');
+    const ss = MLKEM768.decapsulate(ct, this.kemSk); this.kemSk.fill(0); this.kemSk = null;
+    const pe = await crypto.subtle.importKey('raw', ephB, {name:'ECDH', namedCurve:'P-256'}, false, []);
+    const ecdh = new Uint8Array(await crypto.subtle.deriveBits({name:'ECDH', public:pe}, this.eph.privateKey, 256));
+    this.eph = null;
+    await this.deriveKeys(this.ephRaw, ephB, this.kemPk, ct, ecdh, ss);
+    return this.finish(peerPub, peerId);
+  }
+  async deriveKeys(ephA, ephB, kemPk, kemCt, ecdh, kemSS){
+    const fpA = this.role === 'a' ? this.myFp : this.peerFp, fpB = this.role === 'a' ? this.peerFp : this.myFp;
+    const salt = await sha256(concat(enc.encode(`p2pchat-v3|${fpA}|${fpB}|`), ephA, ephB, await sha256(kemPk), await sha256(kemCt)));
+    const ikm = concat(ecdh, kemSS);                       // 兩種金鑰交換結果合併：任一種被破解，另一種仍能保護
+    const hk = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']);
+    ikm.fill(0); ecdh.fill(0); kemSS.fill(0);
+    const bits = info => crypto.subtle.deriveBits({name:'HKDF', hash:'SHA-256', salt, info:enc.encode(info)}, hk, 256).then(b => new Uint8Array(b));
+    const cAB = await bits('p2pchat v3 chain a->b'), cBA = await bits('p2pchat v3 chain b->a');
+    this.txSt = {chain: this.role === 'a' ? cAB : cBA}; this.rxSt = {chain: this.role === 'a' ? cBA : cAB};
+    await ratchet(this.txSt); await ratchet(this.rxSt);
+  }
+  async finish(peerPub, peerId){
     this.peerId = peerId; this.peerPub = peerPub; this.safety = await safetyNumber(ME.pubRaw, peerPub);
-    this.eph = null; this.ready = true;
+    this.ready = true;
     await onSessionReady(this);
     const early = this.early || []; this.early = null;
     for (const d of early) await this.recv(d);
   }
+
+  /* ---- 加密傳輸：AES-256-GCM，每 1024 個封包自動輪替金鑰 ---- */
   nonce(ctr){ const n = new Uint8Array(12); new DataView(n.buffer).setBigUint64(4, ctr); return n; }
   send(obj, bin){
     if (!this.ready || this.closed) return Promise.reject(new Error('未連線'));
     const ctr = this.sendCtr++;
-    const pt = bin ? concat(new Uint8Array([1]), bin) : concat(new Uint8Array([0]), enc.encode(JSON.stringify(obj)));
+    let pt;
+    if (bin) pt = concat(new Uint8Array([1]), bin);
+    else {
+      // 文字與控制訊息補齊到 256 位元組的倍數，隱藏實際長度（補的是空白，JSON 解析時會忽略）
+      const j = enc.encode(JSON.stringify(obj)), len = Math.ceil((j.length + 1) / PAD) * PAD;
+      pt = new Uint8Array(len).fill(0x20); pt[0] = 0; pt.set(j, 1);
+    }
     const p = this.tx.then(async () => {
-      const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:this.nonce(ctr)}, this.txKey, pt);
+      if (ctr > 0n && ctr % EPOCH === 0n) await ratchet(this.txSt);
+      const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:this.nonce(ctr)}, this.txSt.key, pt);
       if (this.dc.readyState !== 'open') throw new Error('連線中斷');
       this.dc.send(ct);
     });
@@ -676,7 +759,8 @@ class Session {
   async recv(d){
     if (typeof d === 'string') throw new Error('收到未加密資料，已中止');
     const ctr = this.recvCtr++;
-    const pt = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:this.nonce(ctr)}, this.rxKey, d));
+    if (ctr > 0n && ctr % EPOCH === 0n) await ratchet(this.rxSt);
+    const pt = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:this.nonce(ctr)}, this.rxSt.key, d));
     if (pt[0] === 0) onCtrl(this, JSON.parse(dec.decode(pt.subarray(1))));
     else onChunk(this, pt.subarray(1));
   }
@@ -686,6 +770,8 @@ class Session {
     if (this.peerId && this.ready) sys(this.peerId, '⚠ ' + t, true);
     else if (this.manual) $('addErr').textContent = '⚠ ' + t;
     else if (this.expect) sys(this.expect, '⚠ ' + t, true);
+    this.quiet = true;   // 原因已經說明，不要再當成網路問題
+    if (this.joinOf && joinState === this.joinOf){ endJoin(); setJoinStatus(null); $('addErr').textContent = '⚠ ' + t; }
     this.close();
   }
   close(){
@@ -1149,7 +1235,7 @@ function render(){
     avatar($('cAv'), current, nameOf(current), stateOf(current));
     $('cName').textContent = nameOf(current);
     const sub = $('cSub'); sub.textContent = '';
-    if (s){ sub.insertAdjacentHTML('beforeend', icon('lock')); sub.append(' 端對端加密'); if (c.verified){ const v = document.createElement('span'); v.className = 'verified'; v.textContent = ' · 已驗證'; sub.appendChild(v); } }
+    if (s){ sub.insertAdjacentHTML('beforeend', icon('lock')); sub.append(' 端對端加密 · 抗量子'); if (c.verified){ const v = document.createElement('span'); v.className = 'verified'; v.textContent = ' · 已驗證'; sub.appendChild(v); } }
     else sub.textContent = stateText(current);
     $('btnVerify').disabled = !s;
     for (const id of ['text','btnSend','btnFile','emojiBtn']) $(id).disabled = !s;
