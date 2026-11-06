@@ -425,6 +425,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const CHUNK = 16*1024 - 64, HIGH = 4*1024*1024, LOW = 1024*1024;
 const INVITE_TTL = 60*60*1000;
+const ATTEMPT_MS = 18000;   // 單次直連嘗試的等待上限
+const TIPS = '建議：讓雙方連上同一個 Wi-Fi 再試；或暫時關閉 VPN、防毒軟體的網路防護；或換一個網路（例如用手機分享熱點）。';
+const contactFail = new Map(); // 聯絡人 id -> 最近一次直連失敗的原因
 const STUN = [{urls:['stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']}];
 const params = new URLSearchParams(location.search);
 const BROKERS = params.get('broker') ? [params.get('broker')] :
@@ -580,6 +583,18 @@ function gatherDone(pc){
   });
 }
 
+// 依雙方的連線候選位址，推測直連失敗的原因
+function diagnose(s){
+  const has = (sdp, t) => new RegExp('typ ' + t).test(sdp || '');
+  const L = s.pc.localDescription?.sdp, R = s.pc.remoteDescription?.sdp;
+  if (!settings.stun) return '你在設定中關閉了 STUN，只有雙方在同一個區網時才能直連。請到「設定」開啟「使用公共 STUN」。';
+  const l = has(L, 'srflx'), r = has(R, 'srflx');
+  if (!l && !r) return '雙方的網路似乎都封鎖了 P2P 所需的 UDP 連線。';
+  if (!l) return '你目前的網路似乎封鎖了 P2P 所需的 UDP 連線（常見於公司或學校網路、VPN、防毒軟體的網路防護）。';
+  if (!r) return '對方目前的網路似乎封鎖了 P2P 所需的 UDP 連線（常見於公司或學校網路、VPN、防毒軟體的網路防護）。';
+  return '雙方都取得了公網位址，但兩邊的網路無法直接互通（常見於手機行動網路，或較嚴格的路由器設定）。';
+}
+
 class Session {
   constructor(role, expectId, manual=false){
     this.role = role; this.expect = expectId; this.manual = manual;
@@ -675,12 +690,26 @@ class Session {
   }
   close(){
     if (this.closed) return; this.closed = true;
+    // 尚未連上就結束（且不是使用者主動取消）＝直連失敗，先判斷原因
+    const failed = !this.ready && !this.quiet && !!this.pc.remoteDescription;
+    const why = failed ? diagnose(this) : null;
     try{ this.pc.close(); }catch{}
     if (this.peerId && sessions.get(this.peerId) === this){ sessions.delete(this.peerId); sys(this.peerId, '連線已中斷'); }
-    for (const [k,v] of autoPending) if (v === this){ autoPending.delete(k); if (!this.ready) Signal.lastHi.delete(k); }
-    if (pendingManual === this) pendingManual = null;
-    if (invite && invite.session === this){ invite.session = null; if (!this.ready) setInviteStatus('等待對方加入…'); }
-    if (joinState && joinState.session === this) joinState.session = null;
+    for (const [k,v] of autoPending) if (v === this){ autoPending.delete(k); if (!this.ready) Signal.lastHi.delete(k); if (why) contactFail.set(k, why); }
+    if (pendingManual === this){ pendingManual = null; if (why) $('addErr').textContent = '⚠ 無法建立直連：' + why + ' ' + TIPS; }
+    if (invite && invite.session === this){
+      invite.session = null;
+      if (!this.ready) setInviteStatus('等待對方加入…');
+      if (why){ invite.fails = (invite.fails || 0) + 1; $('addErr').textContent = `⚠ 對方嘗試加入，但無法建立直連（第 ${invite.fails} 次）：${why} ${TIPS}`; }
+    }
+    if (joinState && joinState.session === this){
+      const js = joinState; js.session = null;
+      if (why){
+        js.fails = (js.fails || 0) + 1; js.why = why;
+        if (js.fails >= 2) failJoin(js);
+        else setJoinStatus('直連失敗，正在重試…');
+      }
+    }
     for (const q of this.queue) q.el.title.textContent = '未傳送：' + q.file.name;
     this.queue = [];
     if (this.incoming){ this.incoming.el.title.textContent = '接收中斷：' + this.incoming.name; this.incoming = null; }
@@ -692,7 +721,7 @@ async function onSessionReady(s){
   for (const [k,v] of autoPending) if (v === s) autoPending.delete(k);
   if (pendingManual === s) pendingManual = null;
   const old = sessions.get(s.peerId); if (old && old !== s){ old.peerId = null; old.close(); }
-  sessions.set(s.peerId, s);
+  sessions.set(s.peerId, s); contactFail.delete(s.peerId);
   let c = contacts[s.peerId], isNew = false;
   if (!c){ c = contacts[s.peerId] = {id:s.peerId, pub:b64(s.peerPub), nick:'', alias:'', added:Date.now()}; isNew = true; }
   await saveContacts();
@@ -860,7 +889,7 @@ async function handleSignal(c, m){
     if (live) live.close();
     if (iAmA) startAuto(c); else sendC(c, {t:'hi'});
   } else if (m.t === 'offer' && !iAmA && typeof m.sdp === 'string'){
-    if (pend) pend.close();
+    if (pend){ pend.quiet = true; pend.close(); }
     if (live) live.close();
     const s = new Session('b', c.id); autoPending.set(c.id, s); render();
     const sdp = await s.takeOffer(m.sdp);
@@ -870,7 +899,7 @@ async function handleSignal(c, m){
   }
 }
 async function startAuto(c){
-  const old = autoPending.get(c.id); if (old) old.close();
+  const old = autoPending.get(c.id); if (old){ old.quiet = true; old.close(); }
   const s = new Session('a', c.id); s.sid = hex(rand(6)); autoPending.set(c.id, s); render();
   const sdp = await s.makeOffer();
   if (!s.closed) sendC(c, {t:'offer', sdp, sid:s.sid});
@@ -937,7 +966,7 @@ async function onInviteMsg(inv, m){
 function endInvite(used){
   if (!invite) return;
   Signal.unlisten(invite.topic);
-  if (invite.session && !invite.session.ready) invite.session.close();
+  if (invite.session && !invite.session.ready){ invite.session.quiet = true; invite.session.close(); }
   invite = null; kvSet('invite', null);
   $('inviteBox').hidden = true; $('btnCreate').hidden = false;
   if (used === 'expired') $('addErr').textContent = '邀請已過期，請重新建立。';
@@ -975,8 +1004,8 @@ async function startJoin(inv){
   Signal.listen(js.topic, js.key, m => onJoinMsg(js, m));
   const who = inv.name || '對方';
   const knock = () => {
-    if (joinState !== js || js.session) return;
-    if (Date.now() - js.started > 45000){
+    if (joinState !== js || js.session || js.busy) return;
+    if (!js.gotOffer && Date.now() - js.started > 30000){
       endJoin(); setJoinStatus(null);
       $('addErr').textContent = `${who}沒有回應。可能是對方沒有開著頁面，或這個邀請已經被使用或取消。請對方確認頁面開著後再按一次；若仍不行，請對方重新建立邀請。`;
       return;
@@ -994,25 +1023,30 @@ async function onJoinMsg(js, m){
     const pub = unb64(m.pub);
     if (!hex(await sha256(pub)).startsWith(js.inv.idh)) return;   // 只接受建立邀請的那台裝置
     if (joinState !== js) return;
-    s = new Session('b', await idOf(pub), true); s.joinOf = js; js.session = s;
+    s = new Session('b', await idOf(pub), true); s.joinOf = js; js.session = s; js.gotOffer = true;
   } finally { js.busy = false; }
-  setJoinStatus('找到對方，正在建立加密連線…');
+  setJoinStatus(js.fails ? '找到對方，正在重新嘗試建立加密連線…' : '找到對方，正在建立加密連線…');
   const sdp = await s.takeOffer(m.sdp);
   if (!s.closed) Signal.publish(js.topic, js.key, {t:'answer', sdp, sid:m.sid});
+}
+function failJoin(js){
+  const who = js.inv.name || '對方';
+  endJoin(); setJoinStatus(null);
+  $('addErr').textContent = `⚠ 已經找到${who}，但兩台裝置之間無法建立直連：${js.why} ${TIPS}`;
 }
 function endJoin(){
   if (!joinState) return;
   clearInterval(joinState.timer); Signal.unlisten(joinState.topic);
-  if (joinState.session && !joinState.session.ready) joinState.session.close();
+  if (joinState.session && !joinState.session.ready){ joinState.session.quiet = true; joinState.session.close(); }
   joinState = null; $('btnJoinCancel').hidden = true; previewJoin();
 }
 function setJoinStatus(t){ $('joinStatus').hidden = !t; $('joinStatusText').textContent = t || ''; }
 
 function tick(){
   const now = Date.now();
-  for (const s of autoPending.values()) if (!s.ready && now - s.started > 25000) s.close();
-  if (invite?.session && !invite.session.ready && now - invite.session.started > 25000) invite.session.close();
-  if (joinState?.session && !joinState.session.ready && now - joinState.session.started > 25000) joinState.session.close();
+  for (const s of autoPending.values()) if (!s.ready && now - s.started > ATTEMPT_MS) s.close();
+  if (invite?.session && !invite.session.ready && now - invite.session.started > ATTEMPT_MS) invite.session.close();
+  if (joinState?.session && !joinState.session.ready && now - joinState.session.started > ATTEMPT_MS) joinState.session.close();
   if (!Signal.ready()) return;
   for (const c of Object.values(contacts)){
     if (!c.secret || sessions.has(c.id) || autoPending.has(c.id)) continue;
@@ -1121,7 +1155,9 @@ function render(){
     for (const id of ['text','btnSend','btnFile','emojiBtn']) $(id).disabled = !s;
     const ob = $('offlineBar');
     ob.hidden = !!s;
-    ob.textContent = autoPending.has(current) ? '正在建立加密連線…' : (c.secret && settings.auto) ? '對方離線中。對方打開這個頁面後會自動連上。' : '目前無法自動連線，請重新用邀請配對。';
+    ob.textContent = autoPending.has(current) ? '正在建立加密連線…'
+      : contactFail.has(current) ? '⚠ 對方在線，但無法建立直連：' + contactFail.get(current) + ' ' + TIPS
+      : (c.secret && settings.auto) ? '對方離線中。對方打開這個頁面後會自動連上。' : '目前無法自動連線，請重新用邀請配對。';
   }
 }
 function go(v){ view = v; $('app').classList.add('m-main'); render(); }
@@ -1270,7 +1306,7 @@ $('btnDelete').onclick = async () => {
   current = null; $('app').classList.remove('m-main'); view = 'add'; render(); toast('已刪除');
 };
 $('btnReconnect').onclick = () => {
-  const c = contacts[current]; sessions.get(current)?.close(); autoPending.get(current)?.close();
+  const c = contacts[current]; sessions.get(current)?.close(); const ap = autoPending.get(current); if (ap){ ap.quiet = true; ap.close(); } contactFail.delete(current);
   if (!c.secret || !Signal.ready()){ sys(current, '無法自動重連：請確認已開啟公共中繼，或重新用邀請配對', true); return; }
   Signal.lastHi.delete(c.id); if (ME.id < c.id) startAuto(c); else sendC(c, {t:'hi'});
   sys(current, '正在重新連線…');
