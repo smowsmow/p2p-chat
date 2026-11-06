@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P2P 加密通訊</title>
+<style>
+:root{
+  --bg:#f4f2ed; --surface:#ffffff; --surface2:#faf8f4; --ink:#1b2124; --muted:#687175; --faint:#9aa1a4; --line:#e6e1d7;
+  --accent:#0f766e; --accent2:#0b5e57; --accent-soft:#e3f3f0; --accent-ink:#ffffff;
+  --mine:#0f766e; --mine-ink:#ffffff; --theirs:#ffffff;
+  --warn:#b4471f; --warn-soft:#fbeee8; --on:#16a34a; --mid:#d97706;
+  --shadow:0 1px 2px rgba(15,30,30,.05),0 10px 30px rgba(15,30,30,.07);
+  --r:16px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0f1314; --surface:#171c1e; --surface2:#1c2225; --ink:#e8eceb; --muted:#9aa4a2; --faint:#6c7775; --line:#283033;
+    --accent:#2cc5b0; --accent2:#5fdcca; --accent-soft:#132e2a; --accent-ink:#04201c;
+    --mine:#145049; --mine-ink:#eafffb; --theirs:#1e2528; --warn:#f0936b; --warn-soft:#352019;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35); }
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;color:inherit}
+button:disabled{opacity:.4;cursor:not-allowed}
+svg{display:block}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+[hidden]{display:none!important}
+
+/* ---------- 按鈕 ---------- */
+.btn{border:0;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .05s}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:17px;height:17px;flex:none}
+.btn{white-space:nowrap;flex:none}
+.btn.block{flex:1}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover:not(:disabled){background:var(--accent2)}
+.btn.soft{background:var(--accent-soft);color:var(--accent)}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--surface2)}
+.btn.danger{background:var(--warn);color:#fff}
+.btn.sm{padding:6px 12px;font-size:13px;border-radius:10px}
+.btn.block{width:100%}
+.icon{width:38px;height:38px;border:0;background:transparent;border-radius:10px;display:inline-grid;place-items:center;color:var(--muted)}
+.icon:hover:not(:disabled){background:var(--surface2);color:var(--ink)}
+.icon svg{width:20px;height:20px}
+
+/* ---------- 版面 ---------- */
+.app{display:grid;grid-template-columns:300px 1fr;height:100vh;height:100dvh}
+.side{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.brand{display:flex;align-items:center;gap:10px;padding:18px 18px 10px}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
+.logo svg{width:20px;height:20px}
+.brand b{font-size:16px;display:block;line-height:1.2}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+.pill.ok i{background:var(--on)} .pill.wait i{background:var(--mid)}
+.me{margin:6px 12px 12px;padding:10px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;gap:10px;cursor:pointer}
+.me:hover{background:var(--accent-soft)}
+.me .nm{font-weight:600;font-size:14px}
+.me .id{font-size:11px;color:var(--muted)}
+.side .newbtn{margin:0 12px}
+.list-title{font-size:12px;color:var(--faint);padding:16px 20px 6px;letter-spacing:.04em}
+.contacts{flex:1;overflow-y:auto;padding:0 8px}
+.contact{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:12px;cursor:pointer}
+.contact:hover{background:var(--surface2)}
+.contact.sel{background:var(--accent-soft)}
+.contact .meta{flex:1;min-width:0}
+.contact .nm{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contact .st{font-size:12px;color:var(--muted)}
+.badge{background:var(--accent);color:var(--accent-ink);border-radius:999px;font-size:11px;font-weight:700;min-width:20px;height:20px;display:grid;place-items:center;padding:0 6px}
+.empty{color:var(--muted);font-size:13px;padding:10px 12px;line-height:1.7}
+.side-foot{border-top:1px solid var(--line);padding:10px 12px;display:flex;gap:8px}
+
+.av{position:relative;width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px}
+.av.sm{width:34px;height:34px;font-size:14px}
+.av .dot{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;border:2px solid var(--surface);background:var(--faint)}
+.av .dot.on{background:var(--on)} .av .dot.mid{background:var(--mid)}
+
+/* ---------- 頁面通用 ---------- */
+.view{display:none;flex:1;min-height:0;flex-direction:column}
+.view.on{display:flex}
+.scroll{overflow-y:auto;flex:1}
+.page{max-width:860px;margin:0 auto;padding:28px 28px 48px}
+.page-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.page-head h2{margin:0;font-size:24px;letter-spacing:.01em}
+.lead{color:var(--muted);margin:0 0 20px}
+.back{display:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 4px;font-size:16px}
+.card h4{margin:0;font-size:15px;display:flex;align-items:center;gap:8px}
+.card h4 svg{width:18px;height:18px;color:var(--accent)}
+.secnote > span{display:contents}
+.hint{font-size:13px;color:var(--muted);margin:6px 0 0;line-height:1.6}
+.err{color:var(--warn);font-size:14px;margin:12px 0 0;min-height:1em}
+.ok-msg{color:var(--on)}
+.field{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--ink);font-size:14px}
+textarea.field{resize:vertical;min-height:84px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all}
+.field:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.tag.gray{background:var(--surface2);color:var(--muted)}
+
+/* 分頁切換 */
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:18px}
+.seg button{border:0;background:transparent;padding:8px 18px;border-radius:9px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* 三種方式比較 */
+.compare{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.cmp{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--surface)}
+.cmp .ic{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin-bottom:8px}
+.cmp .ic svg{width:18px;height:18px}
+.cmp b{display:block;font-size:14px;margin-bottom:2px}
+.cmp p{margin:4px 0 0;font-size:12.5px;color:var(--muted);line-height:1.6}
+.how{font-size:13px;color:var(--muted);margin:0 0 18px;padding:12px 14px;border-radius:12px;background:var(--surface2);line-height:1.7}
+
+/* 邀請結果 */
+.waitbar{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:var(--accent-soft);color:var(--accent);font-weight:600;margin-bottom:14px;flex-wrap:wrap}
+.waitbar .grow{flex:1}
+.waitbar .timer{font-variant-numeric:tabular-nums;font-weight:500;font-size:13px}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 1s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.share{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
+.share .stack{display:flex;flex-direction:column;gap:14px}
+.share > *, .share .card{min-width:0}
+.copybox .field{min-width:0;flex:1}
+.copybox{display:flex;gap:8px;margin-top:10px}
+.copybox .field{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:9px 12px}
+.qrwrap{display:flex;flex-direction:column;align-items:center;text-align:center}
+.qr{width:248px;max-width:100%;aspect-ratio:1;background:#fff;border-radius:12px;padding:6px;margin:10px 0 2px;border:1px solid var(--line)}
+.qr svg{width:100%;height:100%}
+.warnbox{font-size:12.5px;line-height:1.6;color:var(--warn);background:var(--warn-soft);border-radius:10px;padding:8px 10px;margin-top:10px}
+
+/* 加入 */
+.invite-preview{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;background:var(--accent-soft);margin-top:12px}
+.invite-preview .t{font-weight:700}
+.invite-preview .s{font-size:13px;color:var(--muted)}
+.status-line{display:flex;align-items:center;gap:10px;margin-top:12px;color:var(--accent);font-weight:600;font-size:14px}
+
+details.adv{margin-top:28px;border-top:1px solid var(--line);padding-top:16px}
+details.adv summary{cursor:pointer;color:var(--muted);font-size:14px;font-weight:600}
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.step{border:1px dashed var(--line);border-radius:12px;padding:14px}
+.step h4{margin:0 0 6px;font-size:14px}
+.step p{margin:0 0 8px;color:var(--muted);font-size:13px}
+.step textarea{min-height:70px}
+.secnote{margin-top:24px;font-size:12.5px;color:var(--muted);line-height:1.75;display:flex;gap:10px}
+.secnote svg{width:18px;height:18px;flex:none;color:var(--accent);margin-top:2px}
+
+/* ---------- 聊天 ---------- */
+.chat-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+.chat-head .who{min-width:0}
+.chat-head .nm{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-head .sub{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.chat-head .sub svg{width:13px;height:13px}
+.chat-head .grow{flex:1}
+.verified{color:var(--on);font-weight:600}
+.logs{flex:1;overflow-y:auto;padding:18px 20px}
+.log{display:flex;flex-direction:column;gap:4px;max-width:860px;margin:0 auto}
+.msg{max-width:72%;padding:9px 13px;border-radius:18px;background:var(--theirs);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;align-self:flex-start;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+.msg.me{align-self:flex-end;background:var(--mine);color:var(--mine-ink);border-color:transparent}
+.msg .tm{display:block;font-size:10.5px;opacity:.6;margin-top:2px;text-align:right}
+.msg.big{font-size:40px;line-height:1.15;background:transparent;border-color:transparent;box-shadow:none;padding:2px 4px}
+.msg.big.me{color:inherit}
+.msg.big .tm{font-size:10.5px;color:var(--muted);opacity:1}
+.gap{height:8px}
+.sys{align-self:center;font-size:12px;color:var(--muted);background:var(--surface2);padding:4px 12px;border-radius:999px;margin:8px 0;text-align:center;max-width:90%}
+.sys.warn{color:var(--warn);background:var(--warn-soft)}
+.file{min-width:240px}
+.file .fname{font-weight:600;display:flex;align-items:center;gap:8px}
+.file .fname svg{width:18px;height:18px;flex:none}
+.file .fs{font-size:12px;opacity:.7}
+.file a{color:inherit;font-weight:700}
+.bar{height:5px;background:rgba(127,127,127,.25);border-radius:4px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;width:0;background:currentColor;opacity:.7;transition:width .15s}
+img.preview{max-width:260px;max-height:220px;border-radius:12px;display:block;margin-top:8px}
+.composer-wrap{padding:10px 16px 14px;position:relative;background:var(--bg)}
+.composer{display:flex;align-items:flex-end;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:5px;max-width:860px;margin:0 auto;box-shadow:var(--shadow)}
+.composer textarea{flex:1;border:0;background:transparent;resize:none;font:inherit;font-size:15px;color:var(--ink);padding:8px 6px;max-height:160px;outline:none;min-height:38px}
+.send{width:38px;height:38px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none}
+.send svg{width:18px;height:18px}
+#emojiPanel{display:none;position:absolute;bottom:72px;left:max(16px,calc(50% - 430px));background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px;box-shadow:var(--shadow);grid-template-columns:repeat(10,1fr);gap:2px;width:min(440px,calc(100% - 32px));z-index:5}
+#emojiPanel button{border:0;background:transparent;font-size:23px;padding:4px;border-radius:8px;line-height:1.3}
+#emojiPanel button:hover{background:var(--surface2)}
+.offline-bar{max-width:860px;margin:0 auto 8px;font-size:13px;color:var(--muted);text-align:center}
+
+/* ---------- 設定 ---------- */
+.set-row{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.set-row:last-child{border-bottom:0}
+.set-row .t{flex:1}
+.set-row .t b{display:block;font-size:14px}
+.set-row .t span{font-size:13px;color:var(--muted)}
+.switch{position:relative;width:44px;height:26px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch i{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.2s;cursor:pointer}
+.switch i::after{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch input:checked + i{background:var(--accent)}
+.switch input:checked + i::after{transform:translateX(18px)}
+
+/* ---------- 對話框 / 提示 ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(10,15,15,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
+.modal-bg.on{display:flex}
+.modal{background:var(--surface);border-radius:20px;padding:22px;width:min(420px,100%);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal h3{margin:0 0 8px;font-size:18px}
+.modal p{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.7}
+.modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.safety{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.safety span{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;font-weight:600;text-align:center;padding:8px 0;background:var(--surface2);border-radius:10px;letter-spacing:.06em}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:30}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#drop{position:fixed;inset:12px;border-radius:24px;background:rgba(15,118,110,.12);border:3px dashed var(--accent);display:none;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--accent);z-index:9;backdrop-filter:blur(2px)}
+
+/* ---------- 手機 ---------- */
+@media (max-width:760px){
+  .app{grid-template-columns:1fr}
+  .main{display:none}
+  .app.m-main .side{display:none}
+  .app.m-main .main{display:flex}
+  .back{display:inline-grid}
+  .page{padding:18px 16px 40px}
+  .compare{grid-template-columns:1fr}
+  .share{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .msg{max-width:85%}
+  .logs{padding:14px 12px}
+  .composer-wrap{padding:8px 10px 12px}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- ================= 側邊欄 ================= -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo" data-i="lock"></div>
+      <div><b>P2P 加密通訊</b><span class="pill" id="relay"><i></i><span>啟動中…</span></span></div>
+    </div>
+    <div class="me" id="meCard" title="設定">
+      <span class="av sm" id="meAv"></span>
+      <div style="min-width:0"><div class="nm" id="meName"></div><div class="id mono" id="meId"></div></div>
+    </div>
+    <button class="btn primary newbtn" id="btnNew"><span data-i="plus"></span>新增聯絡人</button>
+    <div class="list-title">聯絡人</div>
+    <div class="contacts" id="contacts"></div>
+    <div class="side-foot"><button class="btn ghost sm block" id="btnSettings"><span data-i="gear"></span>設定</button></div>
+  </aside>
+
+  <main class="main">
+    <!-- ================= 新增聯絡人 ================= -->
+    <section class="view scroll" id="vAdd">
+      <div class="page">
+        <div class="page-head"><button class="icon back" data-back data-i="back"></button><h2>新增聯絡人</h2></div>
+        <p class="lead">只需配對一次。配對後彼此會存成聯絡人，之後雙方打開這個頁面就會自動連上。</p>
+
+        <div class="seg" id="seg"><button data-tab="invite" class="on">我要邀請別人</button><button data-tab="join">我收到邀請</button></div>
+
+        <div id="tabInvite">
+          <div class="compare">
+            <div class="cmp"><div class="ic" data-i="link"></div><b>邀請連結 <span class="tag">遠端最方便</span></b><p>用 LINE、Email 傳給對方，對方點開就加入。需要把這個頁面放在網路上（例如 GitHub Pages），否則對方點不開，只能把連結貼到「我收到邀請」。</p></div>
+            <div class="cmp"><div class="ic" data-i="qr"></div><b>QR Code <span class="tag">當面最安全</span></b><p>面對面用手機掃描，不經過任何聊天軟體，旁人無法攔截。頁面放在網路上時，相機掃了會直接開啟。</p></div>
+            <div class="cmp"><div class="ic" data-i="key"></div><b>邀請碼 <span class="tag gray">到處都能用</span></b><p>一小段文字，對方貼到「我收到邀請」即可。頁面只是本機檔案時也能用，是最穩定的選擇。</p></div>
+          </div>
+          <p class="how">這三種方式內容相同，對方任選一種加入即可。每個邀請<b>只能使用一次</b>，<b>1 小時後失效</b>；對方加入時，你這邊需要開著這個頁面。</p>
+          <button class="btn primary" id="btnCreate"><span data-i="plus"></span>建立邀請</button>
+
+          <div id="inviteBox" hidden>
+            <div class="waitbar"><span class="spin"></span><span id="inviteStatus">等待對方加入…</span><span class="grow"></span><span class="timer" id="inviteTimer"></span><button class="btn ghost sm" id="btnCancelInvite">取消邀請</button></div>
+            <div class="share">
+              <div class="stack">
+                <div class="card">
+                  <h4><span data-i="link"></span>邀請連結</h4>
+                  <div class="copybox"><div class="field" id="inviteLink"></div><button class="btn soft sm" data-copy="inviteLink">複製</button><button class="btn soft sm" id="btnShare" hidden>分享</button></div>
+                  <div class="warnbox" id="linkWarn" hidden>目前是從本機檔案開啟的，對方點連結會打不開。請對方把整串連結貼到「我收到邀請」，或改用邀請碼。想讓連結能直接點開，可把這個檔案放到 GitHub Pages 等網站。</div>
+                </div>
+                <div class="card">
+                  <h4><span data-i="key"></span>邀請碼</h4>
+                  <div class="copybox"><div class="field" id="inviteCode"></div><button class="btn soft sm" data-copy="inviteCode">複製</button></div>
+                  <p class="hint">對方在「我收到邀請」貼上即可加入。</p>
+                </div>
+              </div>
+              <div class="card qrwrap">
+                <h4><span data-i="qr"></span>QR Code</h4>
+                <div class="qr" id="qr"></div>
+                <p class="hint" id="qrHint"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tabJoin" hidden>
+          <div class="card">
+            <h3>貼上收到的邀請</h3>
+            <p class="hint" style="margin-bottom:12px">邀請連結或邀請碼都可以，直接整段貼上。</p>
+            <textarea class="field" id="joinIn" placeholder="P2P1-…　或　https://…#join=…"></textarea>
+            <div id="joinPreview" hidden class="invite-preview"><span class="av" id="jpAv"></span><div><div class="t" id="jpTitle"></div><div class="s" id="jpSub"></div></div></div>
+            <div class="row" style="margin-top:14px"><button class="btn primary" id="btnJoin" disabled>接受邀請並連線</button><button class="btn ghost" id="btnJoinCancel" hidden>取消</button></div>
+            <div class="status-line" id="joinStatus" hidden><span class="spin"></span><span id="joinStatusText"></span></div>
+          </div>
+        </div>
+
+        <p class="err" id="addErr"></p>
+
+        <details class="adv">
+          <summary>進階：手動模式（完全不經過中繼，雙方各交換一次連線碼）</summary>
+          <p class="hint">適合在沒有網路中繼的環境（例如同一個區網、無法連外）。需要把邀請碼和回應碼來回傳一次，可另外設密碼保護。</p>
+          <input class="field" type="password" id="pw" placeholder="連線碼密碼（選填，雙方輸入相同密碼）" autocomplete="off" style="margin-top:10px">
+          <div class="steps">
+            <div class="step">
+              <h4>A 方：發起</h4>
+              <p>① 產生後傳給對方　③ 貼上對方回傳的回應碼</p>
+              <div class="row"><button class="btn soft sm" id="mOffer">產生邀請碼</button><button class="btn ghost sm" data-copy="mOfferOut">複製</button></div>
+              <textarea class="field" id="mOfferOut" readonly style="margin-top:8px"></textarea>
+              <textarea class="field" id="mAnswerIn" placeholder="貼上回應碼" style="margin-top:8px"></textarea>
+              <div class="row" style="margin-top:8px"><button class="btn soft sm" id="mAccept" disabled>連線</button></div>
+            </div>
+            <div class="step">
+              <h4>B 方：加入</h4>
+              <p>② 貼上邀請碼，產生回應碼傳回去</p>
+              <textarea class="field" id="mOfferIn" placeholder="貼上邀請碼"></textarea>
+              <div class="row" style="margin-top:8px"><button class="btn soft sm" id="mAnswer">產生回應碼</button><button class="btn ghost sm" data-copy="mAnswerOut">複製</button></div>
+              <textarea class="field" id="mAnswerOut" readonly style="margin-top:8px"></textarea>
+            </div>
+          </div>
+        </details>
+
+        <div class="secnote"><span data-i="shield"></span><div>所有訊息與檔案都直接在兩台裝置間傳送，並經過端對端加密：每次連線以 ECDH 產生新金鑰，內容用 AES-256-GCM 逐塊加密驗證，雙方以裝置身分金鑰簽章防止冒充。公共中繼只轉交加密過的連線資訊，看不到內容，也不需要帳號。訊息不會被儲存。</div></div>
+      </div>
+    </section>
+
+    <!-- ================= 聊天 ================= -->
+    <section class="view" id="vChat">
+      <header class="chat-head">
+        <button class="icon back" data-back data-i="back"></button>
+        <span class="av" id="cAv"></span>
+        <div class="who"><div class="nm" id="cName"></div><div class="sub" id="cSub"></div></div>
+        <span class="grow"></span>
+        <button class="icon" id="btnVerify" title="驗證安全碼" data-i="shield"></button>
+        <button class="icon" id="btnReconnect" title="重新連線" data-i="refresh"></button>
+        <button class="icon" id="btnRename" title="改名" data-i="pen"></button>
+        <button class="icon" id="btnDelete" title="刪除聯絡人" data-i="trash"></button>
+      </header>
+      <div class="logs" id="logs"></div>
+      <div class="composer-wrap">
+        <div class="offline-bar" id="offlineBar" hidden></div>
+        <div id="emojiPanel"></div>
+        <div class="composer">
+          <button class="icon" id="emojiBtn" title="表情符號" data-i="smile"></button>
+          <button class="icon" id="btnFile" title="傳送檔案" data-i="clip"></button>
+          <textarea id="text" rows="1" placeholder="輸入訊息…"></textarea>
+          <button class="send" id="btnSend" title="送出" data-i="send"></button>
+        </div>
+      </div>
+      <input type="file" id="fileInput" multiple hidden>
+    </section>
+
+    <!-- ================= 設定 ================= -->
+    <section class="view scroll" id="vSettings">
+      <div class="page">
+        <div class="page-head"><button class="icon back" data-back data-i="back"></button><h2>設定</h2></div>
+        <p class="lead">這些設定只存在這個瀏覽器裡。</p>
+        <div class="card">
+          <div class="set-row"><div class="t"><b>我的暱稱</b><span>聯絡人看到的名字</span></div><input class="field" id="nick" style="max-width:220px" placeholder="例如：小明"></div>
+          <div class="set-row"><div class="t"><b>使用公共中繼</b><span>邀請連結、QR Code、邀請碼和自動重連都需要。中繼只轉交加密過的連線資訊。關閉後只能用手動模式。</span></div><label class="switch"><input type="checkbox" id="optAuto"><i></i></label></div>
+          <div class="set-row"><div class="t"><b>使用公共 STUN</b><span>不同網路之間連線需要，用來查詢自己的公網位址。同一個區網可關閉。</span></div><label class="switch"><input type="checkbox" id="optStun"><i></i></label></div>
+          <div class="set-row"><div class="t"><b>我的裝置 ID</b><span class="mono" id="fullId" style="word-break:break-all"></span></div></div>
+          <div class="set-row"><div class="t"><b>清除本機資料</b><span>刪除身分金鑰與所有聯絡人，之後所有人都需要重新配對。</span></div><button class="btn ghost sm" id="btnWipe" style="color:var(--warn)">清除</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-bg" id="modal"><div class="modal"></div></div>
+<div id="toast"></div>
+<div id="drop">放開以加密傳送檔案</div>
+
+<script>
+'use strict';
+/* ================= 圖示 ================= */
+const ICONS = {
+  lock:'<path d="M7 11V8a5 5 0 0 1 10 0v3"/><rect x="4" y="11" width="16" height="10" rx="2"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  back:'<path d="M15 18l-6-6 6-6"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+  qr:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4h-4"/>',
+  key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M17 6l3 3M15 8l2 2"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+  smile:'<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>',
+  clip:'<path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',
+  send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>'
+};
+const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]}</svg>`;
+document.querySelectorAll('[data-i]').forEach(el => el.insertAdjacentHTML('afterbegin', icon(el.dataset.i)));
+
+/* ================= 基本工具 ================= */
+const $ = id => document.getElementById(id);
+const enc = new TextEncoder(), dec = new TextDecoder();
+const rand = n => crypto.getRandomValues(new Uint8Array(n));
+const concat = (...a) => { const o = new Uint8Array(a.reduce((s,x)=>s+x.length,0)); let p=0; for(const x of a){o.set(x,p);p+=x.length;} return o; };
+const b64 = u8 => { let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
+const unb64 = s => { s=s.replace(/-/g,'+').replace(/_/g,'/'); s+='==='.slice((s.length+3)%4); return Uint8Array.from(atob(s),c=>c.charCodeAt(0)); };
+const hex = u8 => Array.from(u8, b=>b.toString(16).padStart(2,'0')).join('');
+const sha256 = async d => new Uint8Array(await crypto.subtle.digest('SHA-256', d));
+const idOf = async pubRaw => hex(await sha256(pubRaw)).slice(0,16);
+const streamXform = async (u8, x) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(x)).arrayBuffer());
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const CHUNK = 16*1024 - 64, HIGH = 4*1024*1024, LOW = 1024*1024;
+const INVITE_TTL = 60*60*1000;
+const STUN = [{urls:['stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']}];
+const params = new URLSearchParams(location.search);
+const BROKERS = params.get('broker') ? [params.get('broker')] :
+  ['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt','wss://test.mosquitto.org:8081/mqtt'];
+const EMOJI = '😀 😁 😂 🤣 😊 😍 🥰 😘 😎 🤔 😅 😭 😢 😡 😱 😴 🙄 😇 🤗 😮 👍 👎 👌 🙏 👏 🙌 💪 ✌️ 🤝 👋 ❤️ 💔 🔥 ✨ 🎉 🎂 ⭐ ✅ ❌ ❓ ❗ 💯 ☕ 🍻 🍜 🍰 🐶 🐱 🌈 ☀️ 🌙 🌧️ 📎 📷 💡 🕒 🏠 🚗 ✈️ 💤'.split(' ');
+
+/* ================= QR Code 產生器（位元組模式、M 級糾錯、版本 1–20） ================= */
+const QR = (() => {
+  const ECC = [0,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26];
+  const BLK = [0,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16];
+  const mul = (x,y) => { let z=0; for(let i=7;i>=0;i--){ z=(z<<1)^((z>>>7)*0x11D); z^=((y>>>i)&1)*x; } return z; };
+  const divisor = d => { const r=new Array(d).fill(0); r[d-1]=1; let root=1; for(let i=0;i<d;i++){ for(let j=0;j<d;j++){ r[j]=mul(r[j],root); if(j+1<d) r[j]^=r[j+1]; } root=mul(root,2); } return r; };
+  const remainder = (data, div) => { const r=div.map(()=>0); for(const b of data){ const f=b^r.shift(); r.push(0); div.forEach((c,i)=>r[i]^=mul(c,f)); } return r; };
+  const rawModules = v => { let r=(16*v+128)*v+64; if(v>=2){ const n=Math.floor(v/7)+2; r-=(25*n-10)*n-55; if(v>=7) r-=36; } return r; };
+  const dataCw = v => Math.floor(rawModules(v)/8) - ECC[v]*BLK[v];
+  return text => {
+    const bytes = enc.encode(text);
+    let v = 1; for (; v <= 20; v++) if (4 + (v<=9?8:16) + bytes.length*8 <= dataCw(v)*8) break;
+    if (v > 20) throw new Error('QR 內容太長');
+    const bits = []; const put = (val,len) => { for(let i=len-1;i>=0;i--) bits.push((val>>>i)&1); };
+    put(4,4); put(bytes.length, v<=9?8:16); for (const b of bytes) put(b,8);
+    const cap = dataCw(v)*8; put(0, Math.min(4, cap-bits.length)); put(0, (8-bits.length%8)%8);
+    for (let p=0xEC; bits.length<cap; p^=0xEC^0x11) put(p,8);
+    const data = []; for (let i=0;i<bits.length;i+=8){ let b=0; for(let j=0;j<8;j++) b=(b<<1)|bits[i+j]; data.push(b); }
+    const nb=BLK[v], ecl=ECC[v], raw=Math.floor(rawModules(v)/8), nShort=nb-raw%nb, shortLen=Math.floor(raw/nb), div=divisor(ecl), blocks=[];
+    for (let i=0,k=0;i<nb;i++){ const dat=data.slice(k,k+shortLen-ecl+(i<nShort?0:1)); k+=dat.length; const e=remainder(dat,div); if(i<nShort) dat.push(0); blocks.push(dat.concat(e)); }
+    const all = []; for (let i=0;i<blocks[0].length;i++) blocks.forEach((b,j)=>{ if(i!==shortLen-ecl||j>=nShort) all.push(b[i]); });
+    const size=v*4+17, M=[...Array(size)].map(()=>Array(size).fill(false)), F=[...Array(size)].map(()=>Array(size).fill(false));
+    const set = (x,y,d) => { M[y][x]=d; F[y][x]=true; };
+    for (let i=0;i<size;i++){ set(6,i,i%2===0); set(i,6,i%2===0); }
+    const finder = (x,y) => { for(let dy=-4;dy<=4;dy++) for(let dx=-4;dx<=4;dx++){ const d=Math.max(Math.abs(dx),Math.abs(dy)), xx=x+dx, yy=y+dy; if(xx>=0&&xx<size&&yy>=0&&yy<size) set(xx,yy,d!==2&&d!==4); } };
+    finder(3,3); finder(size-4,3); finder(3,size-4);
+    if (v > 1){
+      const n=Math.floor(v/7)+2, step=Math.ceil((v*4+4)/(n*2-2))*2, pos=[6];
+      for (let p=size-7; pos.length<n; p-=step) pos.splice(1,0,p);
+      for (let i=0;i<n;i++) for (let j=0;j<n;j++){
+        if ((i===0&&j===0)||(i===0&&j===n-1)||(i===n-1&&j===0)) continue;
+        for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++) set(pos[i]+dx, pos[j]+dy, Math.max(Math.abs(dx),Math.abs(dy))!==1);
+      }
+    }
+    const fmt = mask => {
+      const d=mask; let r=d; for(let i=0;i<10;i++) r=(r<<1)^((r>>>9)*0x537);
+      const b=((d<<10)|r)^0x5412, g=i=>((b>>>i)&1)===1;
+      for(let i=0;i<=5;i++) set(8,i,g(i)); set(8,7,g(6)); set(8,8,g(7)); set(7,8,g(8)); for(let i=9;i<15;i++) set(14-i,8,g(i));
+      for(let i=0;i<8;i++) set(size-1-i,8,g(i)); for(let i=8;i<15;i++) set(8,size-15+i,g(i)); set(8,size-8,true);
+    };
+    fmt(0);
+    if (v >= 7){ let r=v; for(let i=0;i<12;i++) r=(r<<1)^((r>>>11)*0x1F25); const b=(v<<12)|r;
+      for(let i=0;i<18;i++){ const c=((b>>>i)&1)===1, a=size-11+i%3, bb=Math.floor(i/3); set(a,bb,c); set(bb,a,c); } }
+    let i = 0;
+    for (let right=size-1; right>=1; right-=2){
+      if (right===6) right=5;
+      for (let vert=0; vert<size; vert++) for (let j=0;j<2;j++){
+        const x=right-j, up=((right+1)&2)===0, y=up?size-1-vert:vert;
+        if (!F[y][x] && i<all.length*8){ M[y][x]=((all[i>>>3]>>>(7-(i&7)))&1)===1; i++; }
+      }
+    }
+    const MF = [(x,y)=>(x+y)%2===0,(x,y)=>y%2===0,(x,y)=>x%3===0,(x,y)=>(x+y)%3===0,(x,y)=>(Math.floor(x/3)+Math.floor(y/2))%2===0,(x,y)=>x*y%2+x*y%3===0,(x,y)=>(x*y%2+x*y%3)%2===0,(x,y)=>((x+y)%2+x*y%3)%2===0];
+    const apply = m => { for(let y=0;y<size;y++) for(let x=0;x<size;x++) if(!F[y][x]&&MF[m](x,y)) M[y][x]=!M[y][x]; };
+    const penalty = () => {
+      let p=0, dark=0;
+      for (let a=0;a<size;a++){ let rr=1, rc=1;
+        for (let b=1;b<size;b++){
+          if (M[a][b]===M[a][b-1]){ rr++; if(rr===5) p+=3; else if(rr>5) p++; } else rr=1;
+          if (M[b][a]===M[b-1][a]){ rc++; if(rc===5) p+=3; else if(rc>5) p++; } else rc=1;
+        } }
+      for (let y=0;y<size;y++) for (let x=0;x<size;x++){ if(M[y][x]) dark++; if(x<size-1&&y<size-1){ const c=M[y][x]; if(c===M[y][x+1]&&c===M[y+1][x]&&c===M[y+1][x+1]) p+=3; } }
+      return p + (Math.ceil(Math.abs(dark*20-size*size*10)/(size*size))-1)*10;
+    };
+    let best=0, bestP=Infinity;
+    for (let m=0;m<8;m++){ apply(m); fmt(m); const p=penalty(); if(p<bestP){ bestP=p; best=m; } apply(m); }
+    apply(best); fmt(best);
+    return M;
+  };
+})();
+function qrSvg(text){
+  const M = QR(text), n = M.length, q = 2; let d = '';
+  for (let y=0;y<n;y++) for (let x=0;x<n;x++) if (M[y][x]) d += `M${x+q} ${y+q}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${n+2*q} ${n+2*q}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+
+/* ================= 本機儲存（IndexedDB） ================= */
+let db = null; const memKV = new Map();
+async function openDB(){
+  try{ db = await new Promise((res,rej)=>{ const r=indexedDB.open('p2pchat-v2',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+  catch(e){ db = null; }
+}
+const kvGet = k => db ? new Promise((res,rej)=>{ const r=db.transaction('kv').objectStore('kv').get(k); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }) : Promise.resolve(memKV.get(k));
+const kvSet = (k,v) => db ? new Promise((res,rej)=>{ const t=db.transaction('kv','readwrite'); t.objectStore('kv').put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }) : (memKV.set(k,v), Promise.resolve());
+
+let ME, MY_IDH, settings, contacts;
+const saveContacts = () => kvSet('contacts', contacts);
+const saveSettings = () => kvSet('settings', settings);
+
+async function loadIdentity(){
+  let idn = await kvGet('identity');
+  if (!idn){
+    const kp = await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'}, false, ['sign','verify']);
+    const pubRaw = new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey));
+    idn = {priv: kp.privateKey, pubRaw, id: await idOf(pubRaw)};
+    await kvSet('identity', idn);
+  }
+  return idn;
+}
+async function safetyNumber(a, b){
+  const [x,y] = [b64(a), b64(b)].sort();
+  const h = await sha256(enc.encode('p2pchat-safety|'+x+'|'+y));
+  const g = []; for (let i=0;i<12;i+=2) g.push(String(((h[i]<<8)|h[i+1]) % 100000).padStart(5,'0'));
+  return g;
+}
+
+/* ================= 手動模式連線碼（壓縮 + 可選密碼） ================= */
+async function pwKey(pw, salt){
+  const base = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:310000, hash:'SHA-256'}, base, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+async function packCode(obj, pw){
+  const z = await streamXform(enc.encode(JSON.stringify(obj)), new CompressionStream('deflate-raw'));
+  if (!pw) return 'Z' + b64(z);
+  const salt = rand(16), iv = rand(12);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, await pwKey(pw, salt), z));
+  return 'P' + b64(concat(salt, iv, ct));
+}
+async function unpackCode(code, pw){
+  code = code.replace(/\s+/g,''); const kind = code[0]; let data;
+  try{ data = unb64(code.slice(1)); }catch{ throw new Error('連線碼格式錯誤'); }
+  if (kind === 'P'){
+    if (!pw) throw new Error('這個連線碼有密碼保護，請先輸入密碼');
+    try{ data = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:data.slice(16,28)}, await pwKey(pw, data.slice(0,16)), data.slice(28))); }
+    catch{ throw new Error('密碼錯誤或連線碼不完整'); }
+  } else if (kind !== 'Z') throw new Error('無法辨識的連線碼');
+  return JSON.parse(dec.decode(await streamXform(data, new DecompressionStream('deflate-raw'))));
+}
+
+/* ================= 加密工作階段 ================= */
+const sessions = new Map();     // peerId -> 已完成握手的 Session
+const autoPending = new Map();  // peerId -> 自動重連中的 Session
+let pendingManual = null;
+
+function fingerprintOf(sdp){
+  const m = (sdp||'').match(/a=fingerprint:[^\r\n]+/gi) || [];
+  return m.map(s=>s.slice(14).trim().toUpperCase()).sort().join(',');
+}
+function gatherDone(pc){
+  return new Promise(res=>{
+    if (pc.iceGatheringState === 'complete') return res();
+    let t = setTimeout(res, 5000), early = false;
+    pc.addEventListener('icegatheringstatechange', ()=>{ if (pc.iceGatheringState==='complete'){ clearTimeout(t); res(); } });
+    pc.addEventListener('icecandidate', e => {
+      if (!e.candidate || early) return;
+      if (e.candidate.type === 'srflx' || !settings.stun){ early = true; clearTimeout(t); t = setTimeout(res, 800); }
+    });
+  });
+}
+
+class Session {
+  constructor(role, expectId, manual=false){
+    this.role = role; this.expect = expectId; this.manual = manual;
+    this.started = Date.now(); this.ready = false; this.closed = false;
+    this.sendCtr = 0n; this.recvCtr = 0n;
+    this.rx = Promise.resolve(); this.tx = Promise.resolve();
+    this.queue = []; this.sending = false; this.incoming = null;
+    this.pc = new RTCPeerConnection({iceServers: settings.stun ? STUN : []});
+    this.pc.onconnectionstatechange = () => {
+      const st = this.pc.connectionState;
+      if (st === 'failed' || st === 'closed') this.close();
+      else if (st === 'disconnected'){ clearTimeout(this.dt); this.dt = setTimeout(()=>{ if (this.pc.connectionState!=='connected') this.close(); }, 6000); }
+    };
+    // 雙方各自建立同一個預先約定的通道（negotiated），避免瀏覽器在通道剛建立時遺失第一則訊息
+    this.attach(this.pc.createDataChannel('p2pchat', {ordered:true, negotiated:true, id:0}));
+  }
+  async makeOffer(){ await this.pc.setLocalDescription(await this.pc.createOffer()); await gatherDone(this.pc); return this.pc.localDescription.sdp; }
+  async takeOffer(sdp){ await this.pc.setRemoteDescription({type:'offer', sdp}); await this.pc.setLocalDescription(await this.pc.createAnswer()); await gatherDone(this.pc); return this.pc.localDescription.sdp; }
+  async takeAnswer(sdp){ await this.pc.setRemoteDescription({type:'answer', sdp}); }
+
+  attach(dc){
+    this.dc = dc; dc.binaryType = 'arraybuffer'; dc.bufferedAmountLowThreshold = LOW;
+    const chain = fn => { this.rx = this.rx.then(fn).catch(err => this.fail(err)); };
+    dc.onopen = () => chain(() => this.hello());
+    dc.onmessage = e => {
+      // 對方完成握手後送出的加密資料，偶爾會比它的握手訊息先到：先暫存，握手完成後再依序處理
+      if (!this.ready && typeof e.data !== 'string'){ (this.early ||= []).push(e.data); return; }
+      chain(() => this.ready ? this.recv(e.data) : this.recvHandshake(e.data));
+    };
+    dc.onclose = () => this.close();
+    if (dc.readyState === 'open') chain(() => this.hello());
+  }
+  hello(){ return this.hsSent || (this.hsSent = this.sendHandshake()); }
+  async sendHandshake(){
+    this.eph = await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, false, ['deriveBits']);
+    this.ephRaw = new Uint8Array(await crypto.subtle.exportKey('raw', this.eph.publicKey));
+    this.myFp = fingerprintOf(this.pc.localDescription.sdp); this.peerFp = fingerprintOf(this.pc.remoteDescription.sdp);
+    const msg = concat(enc.encode(`p2pchat-hs-v2|${this.myFp}|${this.peerFp}|`), this.ephRaw);
+    const sig = new Uint8Array(await crypto.subtle.sign({name:'ECDSA', hash:'SHA-256'}, ME.priv, msg));
+    this.dc.send(JSON.stringify({t:'hs', v:2, id:b64(ME.pubRaw), eph:b64(this.ephRaw), sig:b64(sig)}));
+  }
+  async recvHandshake(d){
+    if (typeof d !== 'string') throw new Error('握手前收到非預期資料');
+    await this.hello();
+    const m = JSON.parse(d); if (m.t !== 'hs' || m.v !== 2) throw new Error('對方版本不相容');
+    const peerPub = unb64(m.id), peerId = await idOf(peerPub);
+    if (peerId === ME.id) throw new Error('不能連線到自己');
+    if (this.expect && this.expect !== peerId) throw new Error('對方身分與預期不符，可能遭到冒充，已拒絕連線');
+    const vk = await crypto.subtle.importKey('raw', peerPub, {name:'ECDSA', namedCurve:'P-256'}, false, ['verify']);
+    const signed = concat(enc.encode(`p2pchat-hs-v2|${this.peerFp}|${this.myFp}|`), unb64(m.eph));
+    if (!await crypto.subtle.verify({name:'ECDSA', hash:'SHA-256'}, vk, unb64(m.sig), signed)) throw new Error('身分簽章驗證失敗，可能有中間人攻擊');
+    const pe = await crypto.subtle.importKey('raw', unb64(m.eph), {name:'ECDH', namedCurve:'P-256'}, false, []);
+    const shared = await crypto.subtle.deriveBits({name:'ECDH', public:pe}, this.eph.privateKey, 256);
+    const hk = await crypto.subtle.importKey('raw', shared, 'HKDF', false, ['deriveKey']);
+    const ephs = [b64(this.ephRaw), m.eph].sort();
+    const salt = await sha256(enc.encode([this.myFp, this.peerFp].sort().join('|') + '|' + ephs.join('|')));
+    const dk = info => crypto.subtle.deriveKey({name:'HKDF', hash:'SHA-256', salt, info:enc.encode(info)}, hk, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+    const kAB = await dk('p2pchat a->b'), kBA = await dk('p2pchat b->a');
+    this.txKey = this.role === 'a' ? kAB : kBA; this.rxKey = this.role === 'a' ? kBA : kAB;
+    this.peerId = peerId; this.peerPub = peerPub; this.safety = await safetyNumber(ME.pubRaw, peerPub);
+    this.eph = null; this.ready = true;
+    await onSessionReady(this);
+    const early = this.early || []; this.early = null;
+    for (const d of early) await this.recv(d);
+  }
+  nonce(ctr){ const n = new Uint8Array(12); new DataView(n.buffer).setBigUint64(4, ctr); return n; }
+  send(obj, bin){
+    if (!this.ready || this.closed) return Promise.reject(new Error('未連線'));
+    const ctr = this.sendCtr++;
+    const pt = bin ? concat(new Uint8Array([1]), bin) : concat(new Uint8Array([0]), enc.encode(JSON.stringify(obj)));
+    const p = this.tx.then(async () => {
+      const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:this.nonce(ctr)}, this.txKey, pt);
+      if (this.dc.readyState !== 'open') throw new Error('連線中斷');
+      this.dc.send(ct);
+    });
+    this.tx = p.catch(()=>{});
+    return p;
+  }
+  async recv(d){
+    if (typeof d === 'string') throw new Error('收到未加密資料，已中止');
+    const ctr = this.recvCtr++;
+    const pt = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:this.nonce(ctr)}, this.rxKey, d));
+    if (pt[0] === 0) onCtrl(this, JSON.parse(dec.decode(pt.subarray(1))));
+    else onChunk(this, pt.subarray(1));
+  }
+  fail(err){
+    console.error(err);
+    const t = (err && err.message) || String(err);
+    if (this.peerId && this.ready) sys(this.peerId, '⚠ ' + t, true);
+    else if (this.manual) $('addErr').textContent = '⚠ ' + t;
+    else if (this.expect) sys(this.expect, '⚠ ' + t, true);
+    this.close();
+  }
+  close(){
+    if (this.closed) return; this.closed = true;
+    try{ this.pc.close(); }catch{}
+    if (this.peerId && sessions.get(this.peerId) === this){ sessions.delete(this.peerId); sys(this.peerId, '連線已中斷'); }
+    for (const [k,v] of autoPending) if (v === this){ autoPending.delete(k); if (!this.ready) Signal.lastHi.delete(k); }
+    if (pendingManual === this) pendingManual = null;
+    if (invite && invite.session === this){ invite.session = null; if (!this.ready) setInviteStatus('等待對方加入…'); }
+    if (joinState && joinState.session === this) joinState.session = null;
+    for (const q of this.queue) q.el.title.textContent = '未傳送：' + q.file.name;
+    this.queue = [];
+    if (this.incoming){ this.incoming.el.title.textContent = '接收中斷：' + this.incoming.name; this.incoming = null; }
+    render();
+  }
+}
+
+async function onSessionReady(s){
+  for (const [k,v] of autoPending) if (v === s) autoPending.delete(k);
+  if (pendingManual === s) pendingManual = null;
+  const old = sessions.get(s.peerId); if (old && old !== s){ old.peerId = null; old.close(); }
+  sessions.set(s.peerId, s);
+  let c = contacts[s.peerId], isNew = false;
+  if (!c){ c = contacts[s.peerId] = {id:s.peerId, pub:b64(s.peerPub), nick:'', alias:'', added:Date.now()}; isNew = true; }
+  await saveContacts();
+  if (s.role === 'a' && (s.manual || !c.secret)){
+    c.secret = b64(rand(32)); await saveContacts(); await watchContact(c);
+    s.send({t:'pair', secret:c.secret});
+  }
+  s.send({t:'hello', name:settings.name || ''});
+  sys(s.peerId, '🔒 已建立端對端加密連線');
+  if (isNew) sys(s.peerId, '新聯絡人：建議按右上角的盾牌圖示，和對方比對安全碼');
+  if (s.inviteOf) endInvite(true);
+  if (s.joinOf) endJoin();
+  if (s.manual){ resetAdd(); openChat(s.peerId); toast(isNew ? '已加入新聯絡人' : '已重新配對'); }
+  render();
+}
+
+/* ================= 訊息與檔案 ================= */
+function onCtrl(s, m){
+  const c = contacts[s.peerId];
+  switch (m.t){
+    case 'hello': if (c && typeof m.name === 'string'){ c.nick = m.name.slice(0,40); saveContacts(); render(); } break;
+    case 'pair': if (c && typeof m.secret === 'string'){ c.secret = m.secret; saveContacts(); watchContact(c); } break;
+    case 'msg': addMsg(s.peerId, String(m.text), false); break;
+    case 'fs': s.incoming = {name:String(m.name), size:+m.size, mime:String(m.mime||''), parts:[], got:0, el:fileBubble(s.peerId, String(m.name), +m.size, false)}; break;
+    case 'fe': {
+      const f = s.incoming; s.incoming = null; if (!f) break;
+      if (f.got !== f.size){ f.el.title.textContent = '檔案不完整：' + f.name; break; }
+      const url = URL.createObjectURL(new Blob(f.parts, {type: f.mime || 'application/octet-stream'}));
+      f.el.bar.parentNode.remove();
+      const a = document.createElement('a'); a.href = url; a.download = f.name; a.textContent = f.name;
+      f.el.title.textContent = ''; f.el.title.appendChild(a);
+      f.el.sub.textContent = size(f.size) + ' · 已驗證 · 點檔名下載';
+      if (/^image\/(png|jpe?g|gif|webp)$/.test(f.mime)){ const img = new Image(); img.src = url; img.className = 'preview'; img.onload = () => current === s.peerId && scrollLog(); f.el.box.insertBefore(img, f.el.tm); }
+      break;
+    }
+  }
+}
+function onChunk(s, u8){
+  const f = s.incoming; if (!f) return;
+  f.parts.push(u8.slice()); f.got += u8.length;
+  f.el.bar.style.width = Math.min(100, f.got / f.size * 100).toFixed(1) + '%';
+}
+function queueFiles(files){
+  const s = sessions.get(current); if (!s) return;
+  for (const f of files) s.queue.push({file:f, el:fileBubble(current, f.name, f.size, true)});
+  pump(s);
+}
+async function pump(s){
+  if (s.sending) return; s.sending = true;
+  while (s.queue.length && !s.closed){
+    const {file, el} = s.queue.shift();
+    try{
+      await s.send({t:'fs', name:file.name, size:file.size, mime:file.type});
+      let off = 0;
+      while (off < file.size){
+        const buf = new Uint8Array(await file.slice(off, off + 512*1024).arrayBuffer());
+        for (let i = 0; i < buf.length; i += CHUNK){
+          if (s.dc.bufferedAmount > HIGH) await new Promise(r => s.dc.addEventListener('bufferedamountlow', r, {once:true}));
+          await s.send(null, buf.subarray(i, i + CHUNK));
+        }
+        off += buf.length;
+        el.bar.style.width = (off / file.size * 100).toFixed(1) + '%';
+      }
+      await s.send({t:'fe'});
+      el.bar.parentNode.remove();
+      el.sub.textContent = size(file.size) + ' · 已加密傳送';
+    }catch(e){ el.sub.textContent = '傳送失敗'; }
+  }
+  s.sending = false;
+}
+
+/* ================= 公共中繼（MQTT over WebSocket，只傳加密的連線資訊） ================= */
+const mqStr = s => { const b = enc.encode(s); return concat(new Uint8Array([b.length>>8, b.length&255]), b); };
+const mqLen = n => { const o=[]; do{ let d=n%128; n=Math.floor(n/128); if(n>0) d|=128; o.push(d); }while(n>0); return new Uint8Array(o); };
+const mqPkt = (h, body) => concat(new Uint8Array([h]), mqLen(body.length), body);
+
+class Mqtt {
+  constructor(url, onMsg){ this.url = url; this.onMsg = onMsg; this.topics = new Set(); this.ok = false; this.pid = 1; this.backoff = 2000; this.buf = new Uint8Array(0); this.connect(); }
+  connect(){
+    let ws; try{ ws = new WebSocket(this.url, ['mqtt']); }catch{ return this.retry(); }
+    this.ws = ws; ws.binaryType = 'arraybuffer'; this.buf = new Uint8Array(0);
+    ws.onopen = () => ws.send(mqPkt(0x10, concat(mqStr('MQTT'), new Uint8Array([4, 0x02, 0, 60]), mqStr('p2pc' + hex(rand(8))))));
+    ws.onmessage = e => this.feed(new Uint8Array(e.data));
+    ws.onclose = () => { this.ok = false; clearInterval(this.ping); Signal.status(); this.retry(); };
+    ws.onerror = () => {};
+  }
+  retry(){ setTimeout(() => this.connect(), this.backoff); this.backoff = Math.min(this.backoff * 2, 60000); }
+  feed(chunk){
+    this.buf = concat(this.buf, chunk);
+    for (;;){
+      const b = this.buf; if (b.length < 2) return;
+      let len = 0, mul = 1, i = 1, byte;
+      do{ if (i >= b.length) return; byte = b[i++]; len += (byte & 127) * mul; mul *= 128; }while(byte & 128);
+      if (b.length < i + len) return;
+      const type = b[0] >> 4, body = b.subarray(i, i + len);
+      this.buf = b.slice(i + len);
+      if (type === 2){
+        if (body[1] !== 0){ this.ws.close(); return; }
+        this.ok = true; this.backoff = 2000;
+        for (const t of this.topics) this.subRaw(t, 0x82);
+        clearInterval(this.ping); this.ping = setInterval(() => this.ok && this.ws.send(new Uint8Array([0xC0, 0])), 30000);
+        Signal.status(); Signal.connected();
+      } else if (type === 3){
+        const qos = (b[0] >> 1) & 3, tl = (body[0] << 8) | body[1];
+        this.onMsg(dec.decode(body.subarray(2, 2 + tl)), body.slice(2 + tl + (qos ? 2 : 0)));
+      }
+    }
+  }
+  subRaw(t, h){ const id = (this.pid++ & 0xffff) || 1; this.ws.send(mqPkt(h, concat(new Uint8Array([id>>8, id&255]), mqStr(t), h === 0x82 ? new Uint8Array([0]) : new Uint8Array(0)))); }
+  sub(t){ if (this.topics.has(t)) return; this.topics.add(t); if (this.ok) this.subRaw(t, 0x82); }
+  unsub(t){ if (!this.topics.delete(t)) return; if (this.ok) this.subRaw(t, 0xA2); }
+  pub(t, payload){ if (this.ok) this.ws.send(mqPkt(0x30, concat(mqStr(t), payload))); }
+}
+
+const Signal = {
+  clients: [], handlers: new Map(), seen: new Set(), lastHi: new Map(),
+  start(){ if (settings.auto) this.clients = BROKERS.map(u => new Mqtt(u, (t,p) => this.onRaw(t,p))); this.status(); },
+  ready(){ return this.clients.some(c => c.ok); },
+  async waitReady(ms){ const t = Date.now() + ms; while (!this.ready() && Date.now() < t) await sleep(250); return this.ready(); },
+  status(){
+    const el = $('relay'), n = this.clients.filter(c => c.ok).length;
+    el.className = 'pill ' + (!settings.auto ? '' : n ? 'ok' : 'wait');
+    el.lastChild.textContent = !settings.auto ? '中繼已關閉（手動模式）' : n ? `中繼已連線 ${n}/${this.clients.length}` : '連線中繼中…';
+  },
+  connected(){ this.lastHi.clear(); setTimeout(tick, 300); },
+  async derive(secret, label){
+    const topic = 'p2pchat/v2/' + hex(await sha256(concat(enc.encode(label === 'contact' ? 'topic|' : 'invite-topic|'), secret))).slice(0, 40);
+    const hk = await crypto.subtle.importKey('raw', secret, 'HKDF', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({name:'HKDF', hash:'SHA-256', salt:new Uint8Array(32), info:enc.encode(label === 'contact' ? 'p2pchat signal' : 'p2pchat invite')}, hk, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+    return {topic, key};
+  },
+  listen(topic, key, fn){ this.handlers.set(topic, {key, fn}); for (const c of this.clients) c.sub(topic); },
+  unlisten(topic){ this.handlers.delete(topic); for (const c of this.clients) c.unsub(topic); },
+  async publish(topic, key, obj){
+    const iv = rand(12);
+    const body = enc.encode(JSON.stringify({...obj, from:ME.id, ts:Date.now(), n:hex(rand(8))}));
+    const payload = concat(iv, new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, body)));
+    for (const c of this.clients) c.pub(topic, payload);
+  },
+  async onRaw(topic, payload){
+    const h = this.handlers.get(topic); if (!h || payload.length < 29) return;
+    let m; try{ m = JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM', iv:payload.subarray(0,12)}, h.key, payload.subarray(12)))); }catch{ return; }
+    if (m.from === ME.id || Math.abs(Date.now() - m.ts) > 120000 || this.seen.has(m.n)) return;
+    this.seen.add(m.n); if (this.seen.size > 2000) this.seen = new Set([...this.seen].slice(-1000));
+    Promise.resolve(h.fn(m)).catch(e => console.error(e));
+  }
+};
+
+/* ---- 聯絡人自動重連 ---- */
+const contactCh = new Map(); // id -> {topic,key}
+async function watchContact(c){
+  if (!c.secret || !settings.auto) return;
+  const ch = await Signal.derive(unb64(c.secret), 'contact');
+  const old = contactCh.get(c.id); if (old && old.topic !== ch.topic) Signal.unlisten(old.topic);
+  contactCh.set(c.id, ch);
+  Signal.listen(ch.topic, ch.key, m => { if (m.from === c.id && contacts[c.id]) return handleSignal(contacts[c.id], m); });
+  Signal.lastHi.delete(c.id);
+}
+const sendC = (c, obj) => { const ch = contactCh.get(c.id); if (ch) return Signal.publish(ch.topic, ch.key, obj); };
+async function handleSignal(c, m){
+  const iAmA = ME.id < c.id;
+  const pend = autoPending.get(c.id), live = sessions.get(c.id);
+  if (m.t === 'hi'){
+    if (pend && Date.now() - pend.started < 15000) return;
+    if (live) live.close();
+    if (iAmA) startAuto(c); else sendC(c, {t:'hi'});
+  } else if (m.t === 'offer' && !iAmA && typeof m.sdp === 'string'){
+    if (pend) pend.close();
+    if (live) live.close();
+    const s = new Session('b', c.id); autoPending.set(c.id, s); render();
+    const sdp = await s.takeOffer(m.sdp);
+    if (!s.closed) sendC(c, {t:'answer', sdp, sid:m.sid});
+  } else if (m.t === 'answer' && iAmA && pend && pend.sid === m.sid && pend.pc.signalingState === 'have-local-offer'){
+    await pend.takeAnswer(m.sdp);
+  }
+}
+async function startAuto(c){
+  const old = autoPending.get(c.id); if (old) old.close();
+  const s = new Session('a', c.id); s.sid = hex(rand(6)); autoPending.set(c.id, s); render();
+  const sdp = await s.makeOffer();
+  if (!s.closed) sendC(c, {t:'offer', sdp, sid:s.sid});
+}
+
+/* ---- 單向邀請（連結 / QR / 邀請碼 共用同一份） ---- */
+let invite = null;   // 邀請方：{secret, exp, topic, key, session}
+let joinState = null; // 加入方：{inv, topic, key, session, started, timer}
+
+function encodeInvite(secret, exp){
+  const name = enc.encode((settings.name || '').slice(0, 12));
+  const b = new Uint8Array(45 + name.length);
+  b[0] = 1; b.set(secret, 1); b.set(MY_IDH, 25);
+  new DataView(b.buffer).setUint32(41, Math.floor(exp / 60000)); b.set(name, 45);
+  return b64(b);
+}
+function decodeInvite(text){
+  const m = (text || '').replace(/\s+/g,'').match(/(?:#join=|P2P1-)([A-Za-z0-9_-]{60,})/);
+  if (!m) return null;
+  let b; try{ b = unb64(m[1]); }catch{ return null; }
+  if (b[0] !== 1 || b.length < 45) return null;
+  return { raw:m[1], secret:b.slice(1,25), idh:hex(b.slice(25,41)), exp:new DataView(b.buffer).getUint32(41)*60000, name:dec.decode(b.slice(45)) };
+}
+const inviteLinkFor = raw => location.href.split('#')[0] + '#join=' + raw;
+
+async function createInvite(){
+  $('addErr').textContent = '';
+  if (!settings.auto) throw new Error('邀請需要開啟「使用公共中繼」，請到設定開啟，或使用下方的手動模式');
+  endInvite(false);
+  const secret = rand(24), exp = Date.now() + INVITE_TTL;
+  const ch = await Signal.derive(secret, 'invite');
+  const inv = invite = {secret, exp, ...ch, session:null};
+  await kvSet('invite', {s:b64(secret), exp});
+  Signal.listen(inv.topic, inv.key, m => onInviteMsg(inv, m));
+  showInvite(inv);
+}
+async function restoreInvite(){
+  const saved = await kvGet('invite');
+  if (!saved || saved.exp < Date.now()) return;
+  const secret = unb64(saved.s), ch = await Signal.derive(secret, 'invite');
+  const inv = invite = {secret, exp:saved.exp, ...ch, session:null};
+  Signal.listen(inv.topic, inv.key, m => onInviteMsg(inv, m));
+  showInvite(inv);
+}
+async function onInviteMsg(inv, m){
+  if (invite !== inv || Date.now() > inv.exp) return;
+  if (m.t === 'join' && typeof m.pub === 'string'){
+    if (inv.session && !inv.session.closed) return;
+    if (inv.busy) return; inv.busy = true;   // 同步上鎖，避免兩個加入請求同時建立兩條連線
+    let s;
+    try{
+      const pub = unb64(m.pub), pid = await idOf(pub);
+      if (pid === ME.id || pid !== m.from || invite !== inv) return;
+      s = new Session('a', pid, true); s.inviteOf = inv; s.sid = hex(rand(6)); inv.session = s;
+    } finally { inv.busy = false; }
+    setInviteStatus('對方已開啟邀請，正在建立加密連線…');
+    const sdp = await s.makeOffer();
+    if (!s.closed) Signal.publish(inv.topic, inv.key, {t:'offer', sdp, sid:s.sid, pub:b64(ME.pubRaw)});
+  } else if (m.t === 'answer'){
+    const s = inv.session;
+    if (s && s.sid === m.sid && s.pc.signalingState === 'have-local-offer') await s.takeAnswer(m.sdp);
+  }
+}
+function endInvite(used){
+  if (!invite) return;
+  Signal.unlisten(invite.topic);
+  if (invite.session && !invite.session.ready) invite.session.close();
+  invite = null; kvSet('invite', null);
+  $('inviteBox').hidden = true; $('btnCreate').hidden = false;
+  if (used === 'expired') $('addErr').textContent = '邀請已過期，請重新建立。';
+}
+function showInvite(inv){
+  const raw = encodeInvite(inv.secret, inv.exp), link = inviteLinkFor(raw), hosted = /^https?:$/.test(location.protocol);
+  $('inviteLink').textContent = link; $('inviteLink').title = link;
+  $('inviteCode').textContent = 'P2P1-' + raw;
+  $('linkWarn').hidden = hosted;
+  $('qr').innerHTML = qrSvg(hosted ? link : 'P2P1-' + raw);
+  $('qrHint').textContent = hosted ? '用手機相機掃描，會直接開啟並加入。' : '掃描後會得到邀請碼，貼到對方的「我收到邀請」即可。';
+  $('btnShare').hidden = !navigator.share;
+  $('inviteBox').hidden = false; $('btnCreate').hidden = true;
+  setInviteStatus('等待對方加入…'); updateTimer();
+}
+function setInviteStatus(t){ $('inviteStatus').textContent = t; }
+function updateTimer(){
+  if (!invite) return;
+  const left = invite.exp - Date.now();
+  if (left <= 0){ endInvite('expired'); return; }
+  const mm = Math.floor(left/60000), ss = Math.floor(left/1000)%60;
+  $('inviteTimer').textContent = `剩 ${mm}:${String(ss).padStart(2,'0')}`;
+}
+
+async function startJoin(inv){
+  $('addErr').textContent = '';
+  if (inv.exp < Date.now()) throw new Error('這個邀請已過期，請對方重新建立');
+  if (inv.idh === hex(MY_IDH)) throw new Error('這是你自己建立的邀請，請傳給對方使用');
+  if (!settings.auto) throw new Error('需要開啟「使用公共中繼」才能接受邀請，請到設定開啟');
+  endJoin();
+  setJoinStatus('正在連上公共中繼…');
+  if (!await Signal.waitReady(10000)){ setJoinStatus(null); throw new Error('無法連上公共中繼，請確認網路後再試，或改用手動模式'); }
+  const ch = await Signal.derive(inv.secret, 'invite');
+  const js = joinState = {inv, ...ch, session:null, started:Date.now()};
+  Signal.listen(js.topic, js.key, m => onJoinMsg(js, m));
+  const who = inv.name || '對方';
+  const knock = () => {
+    if (joinState !== js || js.session) return;
+    if (Date.now() - js.started > 45000){
+      endJoin(); setJoinStatus(null);
+      $('addErr').textContent = `${who}沒有回應。可能是對方沒有開著頁面，或這個邀請已經被使用或取消。請對方確認頁面開著後再按一次；若仍不行，請對方重新建立邀請。`;
+      return;
+    }
+    Signal.publish(js.topic, js.key, {t:'join', pub:b64(ME.pubRaw)});
+  };
+  setJoinStatus(`正在聯絡 ${who}…`); $('btnJoinCancel').hidden = false; $('btnJoin').disabled = true;
+  knock(); js.timer = setInterval(knock, 3000);
+}
+async function onJoinMsg(js, m){
+  if (joinState !== js || m.t !== 'offer' || js.session || js.busy || typeof m.pub !== 'string') return;
+  js.busy = true;
+  let s;
+  try{
+    const pub = unb64(m.pub);
+    if (!hex(await sha256(pub)).startsWith(js.inv.idh)) return;   // 只接受建立邀請的那台裝置
+    if (joinState !== js) return;
+    s = new Session('b', await idOf(pub), true); s.joinOf = js; js.session = s;
+  } finally { js.busy = false; }
+  setJoinStatus('找到對方，正在建立加密連線…');
+  const sdp = await s.takeOffer(m.sdp);
+  if (!s.closed) Signal.publish(js.topic, js.key, {t:'answer', sdp, sid:m.sid});
+}
+function endJoin(){
+  if (!joinState) return;
+  clearInterval(joinState.timer); Signal.unlisten(joinState.topic);
+  if (joinState.session && !joinState.session.ready) joinState.session.close();
+  joinState = null; $('btnJoinCancel').hidden = true; previewJoin();
+}
+function setJoinStatus(t){ $('joinStatus').hidden = !t; $('joinStatusText').textContent = t || ''; }
+
+function tick(){
+  const now = Date.now();
+  for (const s of autoPending.values()) if (!s.ready && now - s.started > 25000) s.close();
+  if (invite?.session && !invite.session.ready && now - invite.session.started > 25000) invite.session.close();
+  if (joinState?.session && !joinState.session.ready && now - joinState.session.started > 25000) joinState.session.close();
+  if (!Signal.ready()) return;
+  for (const c of Object.values(contacts)){
+    if (!c.secret || sessions.has(c.id) || autoPending.has(c.id)) continue;
+    if (now - (Signal.lastHi.get(c.id) || 0) > 30000){ Signal.lastHi.set(c.id, now); sendC(c, {t:'hi'}); }
+  }
+}
+
+/* ================= 介面 ================= */
+let view = 'add', current = null;
+const logs = new Map(), unread = new Map();
+const nameOf = id => { const c = contacts[id]; return c ? (c.alias || c.nick || ('聯絡人 ' + id.slice(0,4).toUpperCase())) : '對方'; };
+const hueOf = id => parseInt((id || '0').slice(0,6), 16) % 360;
+function avatar(el, id, name, state){
+  el.style.background = `hsl(${hueOf(id)} 45% 46%)`;
+  el.textContent = [...(name || '?').trim()][0] || '?';
+  if (state !== undefined){ const d = document.createElement('i'); d.className = 'dot ' + state; el.appendChild(d); }
+}
+const stateOf = id => sessions.has(id) ? 'on' : (autoPending.has(id) ? 'mid' : '');
+const stateText = id => sessions.has(id) ? '在線 · 已加密' : autoPending.has(id) ? '連線中…' : '離線';
+
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 2200); }
+function modal({title, text, node, input, ok='確定', cancel='取消', danger=false}){
+  return new Promise(res => {
+    const bg = $('modal'), box = bg.firstElementChild; box.textContent = '';
+    const h = document.createElement('h3'); h.textContent = title; box.appendChild(h);
+    if (text){ const p = document.createElement('p'); p.textContent = text; box.appendChild(p); }
+    if (node) box.appendChild(node);
+    let inp; if (input !== undefined){ inp = document.createElement('input'); inp.className = 'field'; inp.value = input; box.appendChild(inp); }
+    const act = document.createElement('div'); act.className = 'actions';
+    const done = v => { bg.classList.remove('on'); document.removeEventListener('keydown', key); res(v); };
+    const key = e => { if (e.key === 'Escape') done(null); if (e.key === 'Enter' && inp) done(inp.value); };
+    if (cancel){ const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = cancel; b.onclick = () => done(null); act.appendChild(b); }
+    const b = document.createElement('button'); b.className = 'btn ' + (danger ? 'danger' : 'primary'); b.textContent = ok; b.onclick = () => done(inp ? inp.value : true); act.appendChild(b);
+    box.appendChild(act); bg.classList.add('on'); document.addEventListener('keydown', key);
+    bg.onclick = e => { if (e.target === bg) done(null); };
+    (inp || b).focus(); if (inp) inp.select();
+  });
+}
+
+function logEl(id){
+  if (!logs.has(id)){ const d = document.createElement('div'); d.className = 'log'; d.hidden = true; $('logs').appendChild(d); logs.set(id, d); }
+  return logs.get(id);
+}
+function scrollLog(){ const l = $('logs'); l.scrollTop = l.scrollHeight; }
+function arrived(id){
+  if (id === current && view === 'chat' && !document.hidden) scrollLog();
+  else { unread.set(id, (unread.get(id)||0) + 1); render(); }
+}
+const time = () => new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'});
+function sys(id, t, warn){ const d = document.createElement('div'); d.className = 'sys' + (warn ? ' warn' : ''); d.textContent = t; logEl(id).appendChild(d); if (id === current) scrollLog(); }
+const onlyEmoji = t => t.length <= 16 && /^(\p{Extended_Pictographic}|\p{Emoji_Modifier}|️|‍|\s)+$/u.test(t);
+function bubble(id, me, cls){
+  const log = logEl(id), last = log.lastElementChild;
+  if (last && last.classList.contains('msg') && last.classList.contains('me') !== me) log.appendChild(Object.assign(document.createElement('div'), {className:'gap'}));
+  const d = document.createElement('div'); d.className = 'msg' + (me ? ' me' : '') + (cls ? ' ' + cls : ''); log.appendChild(d); return d;
+}
+function addMsg(id, text, me){
+  const d = bubble(id, me, onlyEmoji(text.trim()) ? 'big' : '');
+  d.appendChild(document.createTextNode(text));
+  const tm = document.createElement('span'); tm.className = 'tm'; tm.textContent = time(); d.appendChild(tm);
+  me ? scrollLog() : arrived(id);
+}
+function size(n){ const u=['B','KB','MB','GB']; let i=0; while(n>=1024&&i<3){n/=1024;i++;} return n.toFixed(i?1:0)+' '+u[i]; }
+function fileBubble(id, name, sz, me){
+  const box = bubble(id, me, 'file');
+  const title = document.createElement('div'); title.className = 'fname'; title.innerHTML = icon('file');
+  const nm = document.createElement('span'); nm.textContent = name; title.appendChild(nm);
+  const sub = document.createElement('div'); sub.className = 'fs'; sub.textContent = size(sz) + (me ? ' · 加密傳送中' : ' · 接收中');
+  const b = document.createElement('div'); b.className = 'bar'; const bar = document.createElement('i'); b.appendChild(bar);
+  const tm = document.createElement('span'); tm.className = 'tm'; tm.textContent = time();
+  box.append(title, sub, b, tm); me ? scrollLog() : arrived(id);
+  return {box, title:nm, sub, bar, tm};
+}
+
+function render(){
+  // 側邊欄
+  avatar($('meAv'), ME.id, settings.name || '我');
+  $('meName').textContent = settings.name || '（未設定暱稱）';
+  $('meId').textContent = 'ID ' + ME.id.slice(0,8).toUpperCase();
+  const list = $('contacts'); list.textContent = '';
+  const cs = Object.values(contacts).sort((a,b) => (stateOf(b.id)==='on') - (stateOf(a.id)==='on') || a.added - b.added);
+  if (!cs.length){ const e = document.createElement('div'); e.className = 'empty'; e.textContent = '還沒有聯絡人。按「新增聯絡人」建立邀請，傳給朋友就能開始聊天。'; list.appendChild(e); }
+  for (const c of cs){
+    const row = document.createElement('div'); row.className = 'contact' + (c.id === current && view === 'chat' ? ' sel' : '');
+    const av = document.createElement('span'); av.className = 'av'; avatar(av, c.id, nameOf(c.id), stateOf(c.id));
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = nameOf(c.id);
+    const st = document.createElement('div'); st.className = 'st'; st.textContent = stateText(c.id);
+    meta.append(nm, st); row.append(av, meta);
+    const u = unread.get(c.id); if (u){ const bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = u; row.appendChild(bd); }
+    row.onclick = () => openChat(c.id);
+    list.appendChild(row);
+  }
+  const total = [...unread.values()].reduce((a,b)=>a+b,0);
+  document.title = (total ? `(${total}) ` : '') + 'P2P 加密通訊';
+  // 主畫面
+  for (const v of ['add','chat','settings']) $('v' + v[0].toUpperCase() + v.slice(1)).classList.toggle('on', view === v);
+  if (view === 'chat' && contacts[current]){
+    const s = sessions.get(current), c = contacts[current];
+    avatar($('cAv'), current, nameOf(current), stateOf(current));
+    $('cName').textContent = nameOf(current);
+    const sub = $('cSub'); sub.textContent = '';
+    if (s){ sub.insertAdjacentHTML('beforeend', icon('lock')); sub.append(' 端對端加密'); if (c.verified){ const v = document.createElement('span'); v.className = 'verified'; v.textContent = ' · 已驗證'; sub.appendChild(v); } }
+    else sub.textContent = stateText(current);
+    $('btnVerify').disabled = !s;
+    for (const id of ['text','btnSend','btnFile','emojiBtn']) $(id).disabled = !s;
+    const ob = $('offlineBar');
+    ob.hidden = !!s;
+    ob.textContent = autoPending.has(current) ? '正在建立加密連線…' : (c.secret && settings.auto) ? '對方離線中。對方打開這個頁面後會自動連上。' : '目前無法自動連線，請重新用邀請配對。';
+  }
+}
+function go(v){ view = v; $('app').classList.add('m-main'); render(); }
+function openChat(id){
+  current = id; unread.delete(id); view = 'chat';
+  for (const [k,el] of logs) el.hidden = k !== id;
+  logEl(id).hidden = false;
+  $('app').classList.add('m-main'); $('emojiPanel').style.display = 'none';
+  render(); scrollLog();
+  if (sessions.has(id) && matchMedia('(min-width:761px)').matches) $('text').focus();
+}
+function resetAdd(){
+  for (const id of ['mOfferOut','mAnswerIn','mOfferIn','mAnswerOut','pw','joinIn']) $(id).value = '';
+  $('mAccept').disabled = true; $('addErr').textContent = ''; setJoinStatus(null); previewJoin();
+}
+function tab(t){
+  for (const b of $('seg').children) b.classList.toggle('on', b.dataset.tab === t);
+  $('tabInvite').hidden = t !== 'invite'; $('tabJoin').hidden = t !== 'join'; $('addErr').textContent = '';
+}
+function previewJoin(){
+  const inv = decodeInvite($('joinIn').value);
+  $('joinPreview').hidden = !inv; $('btnJoin').disabled = !inv || !!joinState;
+  if (!inv) return null;
+  const name = inv.name || '一位朋友';
+  avatar($('jpAv'), inv.idh, name);
+  $('jpTitle').textContent = `${name} 邀請你成為聯絡人`;
+  const expired = inv.exp < Date.now();
+  $('jpSub').textContent = expired ? '這個邀請已過期，請對方重新建立' : `邀請有效到 ${new Date(inv.exp).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})} · 只能使用一次`;
+  if (expired) $('btnJoin').disabled = true;
+  return inv;
+}
+
+/* ---- 事件：導覽 ---- */
+$('btnNew').onclick = () => { go('add'); };
+$('btnSettings').onclick = $('meCard').onclick = () => go('settings');
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { $('app').classList.remove('m-main'); if (view === 'chat') render(); });
+$('seg').onclick = e => { if (e.target.dataset.tab) tab(e.target.dataset.tab); };
+document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => {
+  const el = $(b.dataset.copy), v = el.value !== undefined ? el.value : el.textContent;
+  if (!v) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => toast('已複製'), () => {
+    const t = document.createElement('textarea'); t.value = v; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('已複製');
+  });
+});
+
+/* ---- 事件：邀請 ---- */
+const guard = fn => async () => { try{ await fn(); }catch(e){ $('addErr').textContent = '⚠ ' + e.message; } };
+$('btnCreate').onclick = guard(createInvite);
+$('btnCancelInvite').onclick = () => { endInvite(false); toast('邀請已取消'); };
+$('btnShare').onclick = () => navigator.share({title:'P2P 加密通訊邀請', text:'用這個連結和我建立加密聊天（1 小時內有效）', url:$('inviteLink').textContent}).catch(()=>{});
+$('joinIn').addEventListener('input', () => { $('addErr').textContent = ''; previewJoin(); });
+$('btnJoin').onclick = guard(async () => { const inv = previewJoin(); if (inv) await startJoin(inv); });
+$('btnJoinCancel').onclick = () => { endJoin(); setJoinStatus(null); };
+
+/* ---- 事件：手動模式 ---- */
+$('mOffer').onclick = guard(async () => {
+  $('mOfferOut').value = '產生中…';
+  if (pendingManual) pendingManual.close();
+  const s = pendingManual = new Session('a', null, true);
+  const sdp = await s.makeOffer();
+  $('mOfferOut').value = await packCode({t:'o', v:2, sdp, id:b64(ME.pubRaw)}, $('pw').value);
+  $('mAccept').disabled = false;
+});
+$('mAnswer').onclick = guard(async () => {
+  const d = await unpackCode($('mOfferIn').value, $('pw').value);
+  if (d.t !== 'o' || d.v !== 2) throw new Error('這不是有效的手動模式邀請碼');
+  $('mAnswerOut').value = '產生中…';
+  if (pendingManual) pendingManual.close();
+  const s = pendingManual = new Session('b', await idOf(unb64(d.id)), true);
+  const sdp = await s.takeOffer(d.sdp);
+  $('mAnswerOut').value = await packCode({t:'a', v:2, sdp, id:b64(ME.pubRaw)}, $('pw').value);
+});
+$('mAccept').onclick = guard(async () => {
+  const d = await unpackCode($('mAnswerIn').value, $('pw').value);
+  if (d.t !== 'a' || d.v !== 2) throw new Error('這不是有效的回應碼');
+  const s = pendingManual; if (!s || s.role !== 'a') throw new Error('請先產生邀請碼');
+  s.expect = await idOf(unb64(d.id));
+  await s.takeAnswer(d.sdp);
+  $('mAccept').disabled = true;
+});
+
+/* ---- 事件：聊天 ---- */
+function sendText(){
+  const s = sessions.get(current), t = $('text').value;
+  if (!s || !t.trim()) return;
+  s.send({t:'msg', text:t}).catch(()=>{}); addMsg(current, t, true); $('text').value = ''; grow();
+}
+function grow(){ const t = $('text'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 160) + 'px'; }
+$('text').addEventListener('input', grow);
+$('btnSend').onclick = sendText;
+$('text').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); sendText(); } });
+$('btnFile').onclick = () => $('fileInput').click();
+$('fileInput').onchange = e => { queueFiles(e.target.files); e.target.value = ''; };
+$('btnRename').onclick = async () => {
+  const id = current, n = await modal({title:'修改聯絡人名稱', text:'只會改你這邊顯示的名字。', input:nameOf(id), ok:'儲存'});
+  if (n !== null){ contacts[id].alias = n.trim().slice(0,40); saveContacts(); render(); }
+};
+$('btnDelete').onclick = async () => {
+  const id = current;
+  if (!await modal({title:`刪除「${nameOf(id)}」？`, text:'之後要再聊天，需要重新用邀請配對。', ok:'刪除', danger:true})) return;
+  sessions.get(id)?.close(); autoPending.get(id)?.close();
+  const ch = contactCh.get(id); if (ch){ Signal.unlisten(ch.topic); contactCh.delete(id); }
+  delete contacts[id]; saveContacts(); logs.get(id)?.remove(); logs.delete(id); unread.delete(id);
+  current = null; $('app').classList.remove('m-main'); view = 'add'; render(); toast('已刪除');
+};
+$('btnReconnect').onclick = () => {
+  const c = contacts[current]; sessions.get(current)?.close(); autoPending.get(current)?.close();
+  if (!c.secret || !Signal.ready()){ sys(current, '無法自動重連：請確認已開啟公共中繼，或重新用邀請配對', true); return; }
+  Signal.lastHi.delete(c.id); if (ME.id < c.id) startAuto(c); else sendC(c, {t:'hi'});
+  sys(current, '正在重新連線…');
+};
+$('btnVerify').onclick = async () => {
+  const s = sessions.get(current); if (!s) return;
+  const id = current, wrap = document.createElement('div');
+  const g = document.createElement('div'); g.className = 'safety';
+  for (const n of s.safety){ const sp = document.createElement('span'); sp.textContent = n; g.appendChild(sp); }
+  wrap.appendChild(g);
+  const ok = await modal({title:'驗證安全碼', text:`請透過電話或當面，和「${nameOf(id)}」比對下面這組數字。雙方完全相同，代表連線沒有被冒充或攔截。`, node:wrap, ok: contacts[id].verified ? '好' : '數字相同，標記為已驗證', cancel: contacts[id].verified ? null : '稍後再說'});
+  if (ok && !contacts[id].verified){ contacts[id].verified = true; saveContacts(); render(); toast('已標記為已驗證'); }
+};
+
+/* ---- 表情 ---- */
+const panel = $('emojiPanel');
+for (const e of EMOJI){
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = e;
+  b.onclick = () => { const t = $('text'), p = t.selectionStart ?? t.value.length; t.value = t.value.slice(0,p) + e + t.value.slice(t.selectionEnd ?? p); t.focus(); t.selectionStart = t.selectionEnd = p + e.length; grow(); };
+  panel.appendChild(b);
+}
+$('emojiBtn').onclick = e => { e.stopPropagation(); panel.style.display = panel.style.display === 'grid' ? 'none' : 'grid'; };
+document.addEventListener('click', e => { if (!panel.contains(e.target)) panel.style.display = 'none'; });
+
+/* ---- 拖放 / 貼上 ---- */
+let dragN = 0;
+const canDrop = () => view === 'chat' && sessions.has(current);
+addEventListener('dragenter', e => { if (canDrop() && e.dataTransfer.types.includes('Files')){ dragN++; $('drop').style.display = 'flex'; } });
+addEventListener('dragleave', () => { if (--dragN <= 0){ dragN = 0; $('drop').style.display = 'none'; } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => { e.preventDefault(); dragN = 0; $('drop').style.display = 'none'; if (canDrop() && e.dataTransfer.files.length) queueFiles(e.dataTransfer.files); });
+addEventListener('paste', e => { if (canDrop() && e.clipboardData.files.length){ e.preventDefault(); queueFiles(e.clipboardData.files); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && view === 'chat' && current){ unread.delete(current); render(); } });
+
+/* ---- 設定 ---- */
+$('nick').onchange = () => { settings.name = $('nick').value.trim().slice(0,40); saveSettings(); render(); for (const s of sessions.values()) s.send({t:'hello', name:settings.name}).catch(()=>{}); if (invite) showInvite(invite); toast('已儲存'); };
+$('optStun').onchange = () => { settings.stun = $('optStun').checked; saveSettings(); toast('已儲存，下次連線生效'); };
+$('optAuto').onchange = () => { settings.auto = $('optAuto').checked; saveSettings(); location.reload(); };
+$('btnWipe').onclick = async () => {
+  if (!await modal({title:'清除本機所有資料？', text:'身分金鑰與所有聯絡人都會刪除，所有人都需要重新配對。這個動作無法復原。', ok:'清除', danger:true})) return;
+  for (const s of sessions.values()) s.close();
+  if (db){ db.close(); await new Promise(r => { const q = indexedDB.deleteDatabase('p2pchat-v2'); q.onsuccess = q.onerror = q.onblocked = r; }); }
+  location.hash = ''; location.reload();
+};
+
+/* ================= 啟動 ================= */
+(async () => {
+  if (!window.RTCPeerConnection || !crypto.subtle || !window.CompressionStream){ document.body.innerHTML = '<p style="padding:24px">這個瀏覽器不支援所需功能，請使用最新版 Chrome、Edge、Firefox 或 Safari。</p>'; return; }
+  await openDB();
+  ME = await loadIdentity();
+  MY_IDH = (await sha256(ME.pubRaw)).slice(0,16);
+  settings = Object.assign({name:'', stun:true, auto:true}, await kvGet('settings') || {});
+  contacts = await kvGet('contacts') || {};
+  $('nick').value = settings.name; $('optStun').checked = settings.stun; $('optAuto').checked = settings.auto;
+  $('fullId').textContent = ME.id.toUpperCase();
+  Signal.start();
+  for (const c of Object.values(contacts)) await watchContact(c);
+  await restoreInvite();
+  setInterval(tick, 3000); setInterval(updateTimer, 1000);
+
+  const takeLink = () => {
+    const inv = decodeInvite(location.hash); if (!inv) return false;
+    history.replaceState(null, '', location.href.split('#')[0]);
+    $('joinIn').value = 'P2P1-' + inv.raw; tab('join'); go('add'); previewJoin();
+    return true;
+  };
+  addEventListener('hashchange', takeLink);
+  if (!takeLink()){
+    const first = Object.values(contacts).sort((a,b)=>a.added-b.added)[0];
+    if (first && matchMedia('(min-width:761px)').matches) openChat(first.id);
+    else { view = first ? 'chat' : 'add'; if (first) current = first.id; if (!first) $('app').classList.add('m-main'); render(); if (first) $('app').classList.remove('m-main'); }
+  }
+  if (!db) $('addErr').textContent = '⚠ 這個瀏覽器無法使用本機儲存，聯絡人在關閉後會消失（Firefox 直接開啟檔案時可能如此，可改用 Chrome 或 Edge）。';
+})();
+</script>
+</body>
+</html>
